@@ -1,14 +1,13 @@
 /* ============ PARTAGE DES DONNÉES ENTRE TOUS LES UTILISATEURS ============
-   1. Dans Firebase : Paramètres du projet › Vos applications › Web.
-   2. Recopiez ci-dessous les valeurs de votre « firebaseConfig ».
-   3. Envoyez ce fichier sur GitHub (Add file › Upload files).
-   Tant que apiKey est vide, l'app fonctionne sur chaque téléphone séparément.
+   Projet Firebase : a4-nature (Firestore + connexion par e-mail).
+   Pour changer de projet : remplacez ces valeurs, puis renvoyez ce fichier sur GitHub.
    ========================================================================= */
 window.FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyCFT8lOv5583y_uLJh6oRjgF91CvrxFIjo",
+  authDomain: "a4-nature.firebaseapp.com",
+  databaseURL: "https://a4-nature-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "a4-nature",
+  storageBucket: "a4-nature.firebasestorage.app",
+  messagingSenderId: "320649057650",
+  appId: "1:320649057650:web:84bcc955abd6bf2805b9eb"
 };
