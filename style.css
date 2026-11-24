@@ -193,7 +193,10 @@ body.mapview{overflow:hidden}
 .login{min-height:100vh;background:var(--forest);display:grid;place-items:center;padding:24px;padding-top:calc(24px + env(safe-area-inset-top))}.lcard{background:var(--bg);border-radius:22px;padding:24px;width:100%;max-width:420px}.lcard h1{font-size:34px;margin:4px 0 18px}.lcard .date{color:var(--muted)}.lform{display:grid;gap:12px}.lwait{color:#fff;font-size:18px}
 
 /* Module Entretien : planning hebdomadaire et prestations */
-.tiles .tile:nth-child(5){grid-column:1/-1;min-height:104px}
+.tiles.t1{grid-template-columns:1fr}
+.tiles.t1 .tile{min-height:120px}
+.tiles.t1 .tile .tn{font-size:32px}
+.tiles.t4{margin-top:0}
 .wnav{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .wnav b{font:700 22px/1.1 "Barlow Condensed",sans-serif}
 .wnav .btn{font-size:22px;width:48px}
@@ -269,8 +272,10 @@ label.btn{cursor:pointer}
   .hero-in{max-width:1440px;padding-left:32px;padding-right:32px}
   .hero h1{font-size:56px}
   .kpis{max-width:720px}
-  .tiles{grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}
-  .tiles .tile:nth-child(5){grid-column:auto;min-height:150px}
+  .tiles{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+  .tiles.t1{grid-template-columns:1fr}
+  .tiles.t1 .tile{min-height:140px}
+  .tiles.t1 .tile .tn{font-size:40px}
   .tile{min-height:150px;padding:20px}
   .tile .ti svg{width:42px;height:42px}
   .tn{font-size:28px}
@@ -287,19 +292,13 @@ label.btn{cursor:pointer}
   .vtab svg{width:26px;height:26px}
   .vtab:hover{background:light-dark(#f4f7f1,#1b281f);color:var(--ink)}
   /* fiche à gauche, carte toujours visible à droite */
-  body.split .splitw .tabc{width:min(680px,46vw);max-width:none;margin:0;padding:22px 26px 60px 32px}
-  body.split .splitw .tabc .list{grid-template-columns:minmax(0,1fr)}
-  body.split .mapfull{left:min(680px,46vw);border-left:1px solid var(--line);box-shadow:-4px 0 14px rgba(0,0,0,.06)}
   .mapfull .tools{width:96px}
   .tool{min-height:46px;font-size:15px}
   .mapfull .hintbar{right:118px;max-width:560px}
   .gal{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
   .sh{max-width:720px}
 }
-@media (min-width:1600px){
-  body.split .splitw .tabc{width:760px}
-  body.split .mapfull{left:760px}
-}
+
 
 /* ===== Fond « parc entretenu » : pelouse tondue en bandes + haies, topiaires et arbres en bas d'écran ===== */
 body{background:transparent!important}
@@ -370,3 +369,56 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:clamp(90px,
   .calbtn{min-height:84px}
 }
 .calempty{grid-column:1/-1;margin:0;padding:24px 16px;color:var(--muted);position:sticky;left:0}
+
+/* ===== Sous-onglets : contrats annuels d'entretien ===== */
+.ctabs{display:flex;gap:8px;overflow-x:auto;padding:0 max(4vw,14px) 14px;align-items:stretch;scrollbar-width:none}
+.ctabs::-webkit-scrollbar{display:none}
+.ctl{margin:0;padding:0 max(4vw,14px) 6px;font-size:13px;font-weight:600;opacity:.85;text-transform:none}
+.ctab{flex:none;min-height:54px;min-width:84px;padding:6px 16px;border-radius:14px;border:2px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font:700 18px/1.1 "Barlow Condensed",sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.ctab small{font:500 12px Barlow,sans-serif;opacity:.9}
+.ctab.on{background:#fff;color:var(--mc);border-color:#fff}
+.ctab.add{flex-direction:row;gap:4px;font:600 15px Barlow,sans-serif;border-style:dashed}
+.ctab.add svg{width:18px;height:18px}
+.hctr{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.hctr span{font-weight:600;color:var(--muted);font-size:15px}
+@media (min-width:1100px){.ctl{padding:0 32px 6px}.ctabs{padding:0 32px 16px}.ctab{min-width:120px;font-size:20px}}
+
+/* ===== Ordinateur : petite carte à droite + grands onglets ===== */
+@media (min-width:1100px){
+  body.split .splitw{display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,28vw,460px);gap:28px;max-width:1600px;margin:0 auto;padding:24px 32px 0;align-items:start}
+  body.split .splitw .tabc{width:auto;max-width:none;margin:0;padding:0 0 220px}
+  body.split .mapcol{position:sticky;top:96px}
+  body.split .mapcol .mapfull{position:relative!important;inset:auto!important;top:auto!important;height:clamp(260px,42vh,420px);border-radius:18px;overflow:hidden;border:1px solid var(--line);box-shadow:0 6px 20px rgba(30,60,30,.15)}
+  body.split .mapcol .tools{top:auto;bottom:8px;left:8px;right:8px;width:auto;flex-direction:row;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+  body.split .mapcol .tool{min-height:32px;font-size:12px;padding:0 8px;border-radius:9px}
+  body.split .mapcol .tsep{display:none}
+  body.split .mapcol .hintbar{top:44px;left:8px;right:8px}
+  body.split .mapcol .mattr{bottom:auto;top:8px;left:auto;right:8px}
+  .mapbg .nomap{font-size:14px}
+  .mapbig{position:absolute;top:8px;left:8px;z-index:6;background:var(--card);color:var(--ink);font-weight:700;font-size:14px;padding:7px 12px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  /* grands onglets */
+  .vtabs{padding:0 24px;gap:6px}
+  .vtab{min-width:200px;min-height:84px;padding:0 30px;font-size:20px;gap:12px;border-bottom-width:6px}
+  .vtab svg{width:32px;height:32px}
+  .ctl{font-size:15px}
+  .ctab{min-height:66px;min-width:150px;font-size:24px;padding:8px 22px;border-radius:16px}
+  .ctab small{font-size:14px}
+  .ctab.add{font-size:17px}
+  .vh{padding:12px 32px 18px}
+  .vt h1{font-size:48px}
+}
+
+/* ===== Photo de fond : jardin A4 NATURE ===== */
+html{background:#4f6b40}
+body::before{content:"";position:fixed;inset:0;z-index:-2;background:#4f6b40 url("fond-mobile.jpg") center 60%/cover no-repeat}
+@media (min-width:700px){body::before{background-image:url("fond.jpg")}}
+body::after{content:""!important;inset:0!important;height:auto!important;opacity:1!important;z-index:-1!important;background:linear-gradient(180deg,rgba(244,248,239,.10) 0%,rgba(244,248,239,.45) 45%,rgba(244,248,239,.72) 100%)!important}
+:root[data-theme=dark] body::after{background:linear-gradient(180deg,rgba(8,16,10,.35),rgba(8,16,10,.75))!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) body::after{background:linear-gradient(180deg,rgba(8,16,10,.35),rgba(8,16,10,.75))!important}}
+.hero{background:linear-gradient(180deg,rgba(16,34,22,.85) 0%,rgba(16,34,22,.55) 70%,rgba(16,34,22,0) 100%)!important}
+.hero .hills{display:none}
+.hero-in{padding-bottom:56px}
+.kpis div{background:rgba(255,255,255,.16);backdrop-filter:blur(6px)}
+.sec,.hctr>span,.attr,.tabc>.hint,.legend{text-shadow:0 1px 3px light-dark(rgba(255,255,255,.9),rgba(0,0,0,.8))}
+.sec{color:light-dark(#10241a,#f0f5ee)}
+.hctr>span{color:light-dark(#10241a,#e6eee4)}
