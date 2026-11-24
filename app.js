@@ -96,7 +96,7 @@ return null}
 async function geocode(c){const qs=[c.adresse];const tail=String(c.adresse||'').split(',').pop().trim();if(tail!==c.adresse&&/\d{5}/.test(tail))qs.push(tail);
 for(const q0 of qs){try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=fr&q='+encodeURIComponent(q0));const j=await r.json();if(j&&j[0]){c.lat=+(+j[0].lat).toFixed(6);c.lon=+(+j[0].lon).toFixed(6);return true}}catch(e){}}return false}
 const geoTried=new Set();let geoBusy=false;
-async function geoMissing(list){if(geoBusy)return;geoBusy=true;let any=false;for(const c of list){if(hasG(c)||!c.adresse||geoTried.has(c.id))continue;geoTried.add(c.id);if(await geocode(c)){any=true;save();if(V)drawOverlays()}await new Promise(r=>setTimeout(r,1100))}geoBusy=false;if(any&&V)fit()}
+async function geoMissing(list){if(geoBusy)return;geoBusy=true;let any=false;for(const c of list){if(hasG(c)||!c.adresse||geoTried.has(c.id))continue;geoTried.add(c.id);if(await geocode(c)){const g=find(c.id);if(g&&g!==c){g.lat=c.lat;g.lon=c.lon}any=true;save();if(V)drawOverlays()}await new Promise(r=>setTimeout(r,1100))}geoBusy=false;if(any&&V)fit()}
 
 /* ---------- couches de carte ---------- */
 const wmts=(l,s,f)=>`https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${l}&STYLE=${encodeURIComponent(s)}&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=${encodeURIComponent(f)}`;
@@ -150,9 +150,10 @@ const h=$('#hint');if(!mode){h.hidden=true;h.innerHTML='';return}h.hidden=false;
 const meas=tmp&&tmp.pts.length>1?' · '+(tmp.type==='zone'&&tmp.pts.length>2?fmtA(area(tmp.pts)):fmtL(len(tmp.pts))):'';
 const txt={parcelle:'Touchez une parcelle pour l’ajouter au chantier ou la retirer.',note:'Touchez la carte à l’endroit de la note.',ligne:'Touchez les points de la ligne (haie, clôture, bordure…).',zone:'Touchez les angles de la zone (massif, gazon, zone à broyer…).',pin:'Touchez l’emplacement du chantier.'}[mode];
 h.innerHTML=`<p>${txt}<b>${meas}</b></p><div class="hb">${tmp?`<button class="btn sm" data-act="undo-pt">Retirer un point</button><button class="btn sm primary" data-act="finish">Terminer</button>`:''}<button class="btn sm" data-act="mode-off">${mode==='parcelle'?'Fini':'Annuler'}</button></div>`}
+function onMapClickApply(c,p,lat,lng){const i=c.parcelles.findIndex(x=>x.idu===p.idu);if(i>=0){c.parcelles.splice(i,1);toast(`Parcelle ${p.section} ${p.numero} retirée`)}else{c.parcelles.push(p);toast(`Parcelle ${p.section} ${p.numero} ajoutée · ${fmtA(p.contenance)}`);if(!hasG(c)){c.lat=+lat.toFixed(6);c.lon=+lng.toFixed(6)}}save();render()}
 async function onMapClick(e){const c=curC();if(!c||!mode)return;const lat=e.latlng.lat,lng=e.latlng.lng;
 if(mode==='parcelle'){if(busy)return;busy=true;toast('Recherche de la parcelle…');const p=await parcelAt(lat,lng);busy=false;
-if(!p){toast('Aucune parcelle trouvée ici (ou pas de connexion)');return}
+if(!p){toast('Aucune parcelle trouvée ici (ou pas de connexion)');return}const c2=find(c.id);if(c2&&c2!==c)return onMapClickApply(c2,p,lat,lng);
 const i=c.parcelles.findIndex(x=>x.idu===p.idu);
 if(i>=0){c.parcelles.splice(i,1);toast(`Parcelle ${p.section} ${p.numero} retirée`)}else{c.parcelles.push(p);toast(`Parcelle ${p.section} ${p.numero} ajoutée · ${fmtA(p.contenance)}`);if(!hasG(c)){c.lat=+lat.toFixed(6);c.lon=+lng.toFixed(6)}}
 save();render()}
@@ -351,7 +352,7 @@ ${inp('entreprise','Nom de l’entreprise',D.reglages.entreprise)}<fieldset><leg
 <button class="btn primary wide">Enregistrer</button>
 ${FB?(cloud&&cloud.user?`<p class="hint">Connecté : ${esc(cloud.user.email)}. Les chantiers sont partagés en temps réel avec toute l’équipe.</p><button type="button" class="btn" data-act="logout">Se déconnecter</button>`:'<p class="hint">Serveur injoignable pour le moment : les modifications seront envoyées dès le retour de la connexion.</p>'):'<p class="hint">Mode local : les données sont enregistrées sur ce téléphone uniquement.</p><button type="button" class="btn" data-act="fb-setup">Activer le partage d’équipe</button>'}${FB_LOCAL?'<p class="hint">Partage activé sur ce téléphone seulement. Pour que tous les téléphones soient reliés automatiquement, copiez le fichier config.js et envoyez-le sur GitHub.</p><div class="two"><button type="button" class="btn" data-act="fb-copy">Copier config.js</button><button type="button" class="btn danger" data-act="fb-off">Désactiver</button></div>':''}
 <div class="two"><button type="button" class="btn" data-act="dl">Télécharger la sauvegarde</button><button type="button" class="btn" data-act="imp">Importer…</button></div></form>`}
-function finish(c){c.statut='termine';if(!c.fin)c.fin=iso();save();render();toast('Chantier terminé ✓')}
+function finish(c){c=find(c.id)||c;c.statut='termine';if(!c.fin)c.fin=iso();save();render();toast('Chantier terminé ✓')}
 function ask(msg,fn){openSheet(`<div class="sh-in"><p class="ask">${esc(msg)}</p><div class="two"><button class="btn" data-act="close">Annuler</button><button class="btn danger-fill" data-act="ok">Confirmer</button></div></div>`);pending=fn}
 function openSheet(h){closeSheet();const d=document.createElement('div');d.id='sheet';d.innerHTML=`<div class="scrim" data-act="close"></div><div class="sh" role="dialog" aria-modal="true">${h}</div>`;document.body.appendChild(d);document.body.classList.add('lock')}
 function closeSheet(){const s=$('#sheet');if(s)s.remove();document.body.classList.remove('lock')}
@@ -396,21 +397,23 @@ function shrink(file,max,qu){return new Promise((res,rej)=>{const u=URL.createOb
 const zoomTo=b=>{if(!b.isValid())return;if(V&&V.map)V.map.fitBounds(b,{paddingTopLeft:[24,24],paddingBottomRight:[104,24],maxZoom:19});else{PZ=b;goTab('carte')}};
 
 /* ---------- actions ---------- */
-function act(b){const a=b.dataset.act,c=curC();
+function act(b){const a=b.dataset.act;let c=curC();
+/* après une mise à jour venue du serveur, l'objet du chantier est remplacé : on reprend toujours la version à jour */
+const ask2=(m,f)=>ask(m,()=>{if(c)c=find(c.id)||c;f()});
 switch(a){
 case 'settings':openSheet(fSettings());break;
 case 'filt':filt=b.dataset.v;render();break;
 case 'new':openSheet(fChantier(null,b.dataset.m));break;
 case 'edit':openSheet(fChantier(c));break;
 case 'status':if(b.dataset.v==='termine'){finish(c);break}c.statut=b.dataset.v;save();render();break;
-case 'task':c.taches[+b.dataset.i].done=b.checked;save();render();if(b.checked&&c.statut!=='termine'&&c.taches.length&&c.taches.every(t=>t.done))ask(`Toutes les tâches sont faites (100 %). Marquer « ${c.titre} » comme terminé ?`,()=>finish(c));break;
+case 'task':c.taches[+b.dataset.i].done=b.checked;save();render();if(b.checked&&c.statut!=='termine'&&c.taches.length&&c.taches.every(t=>t.done))ask2(`Toutes les tâches sont faites (100 %). Marquer « ${c.titre} » comme terminé ?`,()=>finish(c));break;
 case 'deltask':c.taches.splice(+b.dataset.i,1);save();render();break;
 case 'journal':openSheet(fJournal());break;
 case 'zoom':openSheet(`<div class="sh-in"><div class="sh-h"><h2>Photo</h2><button class="ibtn" data-act="close" aria-label="Fermer">×</button></div><img class="zoom" src="${esc(phSrc(b.dataset.src))}" alt="Photo du chantier"></div>`);break;
-case 'delj':ask('Supprimer cette entrée du journal ?',()=>{const j0=c.journal.find(j=>j.id===b.dataset.j);delPhotos(j0&&j0.photos);c.journal=c.journal.filter(j=>j.id!==b.dataset.j);save();render()});break;
+case 'delj':ask2('Supprimer cette entrée du journal ?',()=>{const j0=c.journal.find(j=>j.id===b.dataset.j);delPhotos(j0&&j0.photos);c.journal=c.journal.filter(j=>j.id!==b.dataset.j);save();render()});break;
 case 'dup':{const n=JSON.parse(JSON.stringify(c));n.id=uid();n.titre+=' (copie)';n.statut='prevu';n.journal=[];n.photos=[];n.ops=[];n.taches.forEach(t=>t.done=false);D.chantiers.push(n);save();location.hash='c-'+n.id;toast('Chantier dupliqué');break}
-case 'del':ask(`Supprimer le chantier « ${c.titre} » ? Cette action est définitive.`,()=>{c.journal.forEach(j=>delPhotos(j.photos));delPhotos(c.photos.map(x=>x.src));c.ops.forEach(o=>delPhotos(o.photos));D.chantiers=D.chantiers.filter(x=>x!==c);save();location.hash='m-'+c.module});break;
-case 'clear-ex':ask('Effacer tous les chantiers d’exemple ?',()=>{D.chantiers=[];D.exemples=false;save();render()});break;
+case 'del':ask2(`Supprimer le chantier « ${c.titre} » ? Cette action est définitive.`,()=>{c.journal.forEach(j=>delPhotos(j.photos));delPhotos(c.photos.map(x=>x.src));c.ops.forEach(o=>delPhotos(o.photos));D.chantiers=D.chantiers.filter(x=>x!==c);save();location.hash='m-'+c.module});break;
+case 'clear-ex':ask2('Effacer tous les chantiers d’exemple ?',()=>{D.chantiers=[];D.exemples=false;save();render()});break;
 case 'dl':{const bl=new Blob([JSON.stringify(D)],{type:'application/json'}),l=document.createElement('a');l.href=URL.createObjectURL(bl);l.download='sauvegarde-chantiers-'+iso()+'.json';document.body.appendChild(l);l.click();l.remove();break}
 case 'imp':openSheet(`<form class="sh-in" data-form="import"><div class="sh-h"><h2>Importer</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div><p class="hint">Choisissez un fichier de sauvegarde. Il remplacera toutes les données actuelles.</p><input type="file" name="file" accept=".json,application/json" required><button class="btn primary wide">Importer</button></form>`);break;
 case 'base':P.base=P.base==='osm'?'photo':'osm';savePref();setBase();updTools();break;
@@ -420,26 +423,26 @@ case 'et':ET=b.dataset.v;render();break;
 case 'pw':PW={y:+b.dataset.y,w:+b.dataset.w};render();break;
 case 'pwstep':PW=wStep(PW,+b.dataset.n);render();break;
 case 'pas':{const s=find(b.dataset.c),p=s&&s.prestations.find(x=>x.id===b.dataset.p);if(!p)break;const k=b.dataset.y+'-'+b.dataset.w;if(p.faits[k])delete p.faits[k];else p.faits[k]={le:iso(),par:cloud&&cloud.user?cloud.user.email:''};save();render();break}
-case 'delpr':ask('Supprimer cette prestation du site ?',()=>{c.prestations=c.prestations.filter(x=>x.id!==b.dataset.p);save();render()});break;
+case 'delpr':ask2('Supprimer cette prestation du site ?',()=>{c.prestations=c.prestations.filter(x=>x.id!==b.dataset.p);save();render()});break;
 case 'mode-off':setMode(null);break;
 case 'undo-pt':if(tmp){tmp.pts.pop();drawTmp();updTools()}break;
 case 'finish':if(!tmp)break;if(tmp.pts.length<(tmp.type==='zone'?3:2)){toast(tmp.type==='zone'?'Placez au moins 3 points':'Placez au moins 2 points');break}openSheet(fAnn(tmp.type,tmp.pts));break;
 case 'drawer':{const o=['min','mid','max'];setDrawer(o[(o.indexOf(dS)+1)%3]);break}
 case 'me':if(!navigator.geolocation){toast('Position indisponible');break}toast('Recherche de votre position…');navigator.geolocation.getCurrentPosition(p=>{if(!V||!V.map)return;const ll=[p.coords.latitude,p.coords.longitude];if(V.me)V.me.remove();V.me=L.circleMarker(ll,{radius:9,color:'#fff',weight:3,fillColor:'#1a73e8',fillOpacity:1,interactive:false}).addTo(V.map);setDrawer('min');V.map.setView(ll,18)},()=>toast('Position refusée ou indisponible'),{enableHighAccuracy:true,timeout:15000});break;
-case 'geo-addr':if(!c.adresse){toast('Ajoutez d’abord une adresse (bouton Modifier)');break}toast('Recherche de l’adresse…');geocode(c).then(ok=>{if(ok){save();render();fit();toast('Chantier placé sur la carte')}else toast('Adresse introuvable : utilisez « Placer »')});break;
+case 'geo-addr':if(!c.adresse){toast('Ajoutez d’abord une adresse (bouton Modifier)');break}toast('Recherche de l’adresse…');geocode(c).then(ok=>{if(ok){const g=find(c.id);if(g&&g!==c){g.lat=c.lat;g.lon=c.lon}save();render();fit();toast('Chantier placé sur la carte')}else toast('Adresse introuvable : utilisez « Placer »')});break;
 case 'zoomp':{const x=c.parcelles[+b.dataset.i];if(x&&window.L)zoomTo(L.geoJSON(x.geom).getBounds());break}
-case 'delp':{const x=c.parcelles[+b.dataset.i];ask(`Retirer la parcelle ${x.section} ${x.numero} du chantier ?`,()=>{c.parcelles.splice(+b.dataset.i,1);save();render()});break}
+case 'delp':{const x=c.parcelles[+b.dataset.i];ask2(`Retirer la parcelle ${x.section} ${x.numero} du chantier ?`,()=>{c.parcelles.splice(+b.dataset.i,1);save();render()});break}
 case 'zooma':{const x=c.annotations.find(y=>y.id===b.dataset.a);if(x&&window.L)zoomTo(L.latLngBounds(x.pts).pad(x.pts.length>1?.1:0));break}
-case 'delann':{if(V&&V.map)V.map.closePopup();ask('Supprimer cette annotation ?',()=>{c.annotations=c.annotations.filter(y=>y.id!==b.dataset.a);save();render()});break}
-case 'logout':ask('Se déconnecter sur ce téléphone ?',()=>{try{localStorage.removeItem(LSK)}catch(e){}D.chantiers=[];lastJ={};cloud.AU.signOut(cloud.auth)});break;
+case 'delann':{if(V&&V.map)V.map.closePopup();ask2('Supprimer cette annotation ?',()=>{c.annotations=c.annotations.filter(y=>y.id!==b.dataset.a);save();render()});break}
+case 'logout':ask2('Se déconnecter sur ce téléphone ?',()=>{try{localStorage.removeItem(LSK)}catch(e){}D.chantiers=[];lastJ={};cloud.AU.signOut(cloud.auth)});break;
 case 'fb-setup':openSheet(`<form class="sh-in" data-form="fbcfg"><div class="sh-h"><h2>Partage d’équipe</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div><p class="hint">Dans Firebase : Paramètres du projet › Vos applications › Web. Copiez tout le bloc « firebaseConfig » et collez-le ici.</p><textarea name="cfg" rows="9" placeholder='const firebaseConfig = { apiKey: "…", authDomain: "…", projectId: "…", … };' required></textarea><button class="btn primary wide">Activer le partage</button></form>`);break;
 case 'fb-copy':navigator.clipboard.writeText(cfgJs(FB)).then(()=>toast('Contenu de config.js copié')).catch(()=>toast('Copie impossible ici'));break;
-case 'fb-off':ask('Désactiver le partage sur ce téléphone ?',()=>{try{localStorage.removeItem('paysage-carte-v1-firebase')}catch(e){}location.reload()});break;
+case 'fb-off':ask2('Désactiver le partage sur ce téléphone ?',()=>{try{localStorage.removeItem('paysage-carte-v1-firebase')}catch(e){}location.reload()});break;
 case 'zph':{const p=c&&c.photos.find(x=>x.id===b.dataset.id);if(!p)break;openSheet(`<form class="sh-in" data-form="phleg"><div class="sh-h"><h2>Photo du site</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div><img class="zoom" data-ph="${esc(p.src)}" src="${esc(phSrc(p.src))}" alt="Photo du site"><p class="hint">${esc(fdl(p.date))}${p.par?' · '+esc(p.par):''}</p><input type="hidden" name="id" value="${esc(p.id)}"><label class="f"><span>Légende</span><input name="leg" value="${esc(p.legende)}" placeholder="ex. massif avant taille"></label><div class="two"><button type="button" class="btn danger" data-act="delph" data-id="${esc(p.id)}">Supprimer</button><button class="btn primary">Enregistrer</button></div></form>`);loadPhotos();break}
-case 'delph':ask('Supprimer cette photo ?',()=>{const p=c.photos.find(x=>x.id===b.dataset.id);if(p)delPhotos([p.src]);c.photos=c.photos.filter(x=>x.id!==b.dataset.id);save();render()});break;
+case 'delph':ask2('Supprimer cette photo ?',()=>{const p=c.photos.find(x=>x.id===b.dataset.id);if(p)delPhotos([p.src]);c.photos=c.photos.filter(x=>x.id!==b.dataset.id);save();render()});break;
 case 'opnew':{const s0=find(b.dataset.c);if(s0)openSheet(fOp(s0,null));break}
 case 'opedit':{const s0=find(b.dataset.c),o=s0&&s0.ops.find(x=>x.id===b.dataset.o);if(o)openSheet(fOp(s0,o));break}
-case 'opdel':ask('Supprimer cette opération ?',()=>{const s0=find(b.dataset.c);if(!s0)return;const o=s0.ops.find(x=>x.id===b.dataset.o);if(o)delPhotos(o.photos);s0.ops=s0.ops.filter(x=>x.id!==b.dataset.o);save();render()});break;
+case 'opdel':ask2('Supprimer cette opération ?',()=>{const s0=find(b.dataset.c);if(!s0)return;const o=s0.ops.find(x=>x.id===b.dataset.o);if(o)delPhotos(o.photos);s0.ops=s0.ops.filter(x=>x.id!==b.dataset.o);save();render()});break;
 case 'opst':{const s0=find(b.dataset.c),o=s0&&s0.ops.find(x=>x.id===b.dataset.o);if(o){o.statut=b.dataset.v;if(o.statut==='fait'&&!o.fait)o.fait=iso();save();render()}break}
 case 'of':OF=b.dataset.v;render();break;
 case 'calnav':CW=wStep(CW||isoW(new Date()),+b.dataset.n);render();break;
@@ -447,7 +450,7 @@ case 'caltoday':CW=wStep(isoW(new Date()),-1);render();break;
 case 'close':closeSheet();break;
 case 'ok':{const f=pending;pending=null;closeSheet();if(f)f();break}}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&!b.closest('.leaflet-popup'))act(b)});
-document.addEventListener('change',async e=>{const t=e.target;if(!t.matches||!t.matches('input[data-upl]'))return;const c=CUR.c;const files=[...t.files];if(!c||!files.length)return;toast('Ajout de '+files.length+' photo'+(files.length>1?'s':'')+'…');for(const f of files){try{c.photos.push({id:uid(),src:await storePhoto(f,c),date:iso(),par:cloud&&cloud.user?cloud.user.email:'',legende:''})}catch(err){toast('Une photo n’a pas pu être ajoutée')}}save();render();toast('Photos ajoutées')});
+document.addEventListener('change',async e=>{const t=e.target;if(!t.matches||!t.matches('input[data-upl]'))return;const c=CUR.c;const files=[...t.files];if(!c||!files.length)return;toast('Ajout de '+files.length+' photo'+(files.length>1?'s':'')+'…');const added=[];for(const f of files){try{added.push({id:uid(),src:await storePhoto(f,c),date:iso(),par:cloud&&cloud.user?cloud.user.email:'',legende:''})}catch(err){toast('Une photo n’a pas pu être ajoutée')}}const cp=find(c.id)||c;cp.photos.push(...added);save();render();toast('Photos ajoutées')});
 document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value;$('#lst').innerHTML=listHTML(CUR.mod)}});
 let ty=null;
 document.addEventListener('touchstart',e=>{ty=e.target.closest('.handle,.dh')?e.touches[0].clientY:null},{passive:true});
@@ -460,7 +463,7 @@ else if(t==='prest'&&c){const sem=[...new Set(String(v.sem).split(/[^0-9]+/).map
 else if(t==='phleg'&&c){const p=c.photos.find(x=>x.id===v.id);if(p)p.legende=String(v.leg||'').trim();closeSheet();save();render()}
 else if(t==='op'){const s0=find(v.c);if(!s0)return;const btn=f.querySelector('.primary');btn.disabled=true;btn.textContent='Enregistrement…';const np=[];for(const file of f.querySelector('input[type=file]').files){try{np.push(await storePhoto(file,s0))}catch(err){toast('Une photo n’a pas pu être ajoutée')}}
 const base={titre:String(v.titre).trim(),date:v.date,statut:v.statut,desc:String(v.desc||'').trim(),heures:v.heures===''?'':+String(v.heures).replace(',','.')};
-let o=v.o&&s0.ops.find(x=>x.id===v.o);if(o){Object.assign(o,base);o.photos=[...(o.photos||[]),...np]}else s0.ops.push(Object.assign({id:uid(),par:cloud&&cloud.user?cloud.user.email:'',cree:iso(),photos:np},base));closeSheet();save();render();toast('Opération enregistrée')}
+const s1=find(v.c)||s0;let o=v.o&&s1.ops.find(x=>x.id===v.o);if(o){Object.assign(o,base);o.photos=[...(o.photos||[]),...np]}else s1.ops.push(Object.assign({id:uid(),par:cloud&&cloud.user?cloud.user.email:'',cree:iso(),photos:np},base));closeSheet();save();render();toast('Opération enregistrée')}
 else if(t==='task'){const s=String(v.t||'').trim();if(s&&c){c.taches.push({t:s,done:false});save();render()}}
 else if(t==='chantier'){const det={};FIELDS[v.module].forEach(x=>det[x.k]=String(v['d_'+x.k]||'').trim());
 const base={titre:v.titre.trim(),client:v.client.trim(),adresse:v.adresse.trim(),tel:v.tel.trim(),debut:v.debut,fin:v.fin,heuresPrevues:v.heuresPrevues===''?'':+v.heuresPrevues,equipe:v.equipe.trim(),notes:v.notes.trim(),details:det};
@@ -472,8 +475,8 @@ else if(t==='ann'&&c){c.annotations.push({id:uid(),type:v.type,pts:JSON.parse(v.
 else if(t==='journal'&&c){const btn=f.querySelector('.primary');btn.disabled=true;btn.textContent='Ajout des photos…';
 const photos=[];for(const file of f.querySelector('input[type=file]').files){try{photos.push(await storePhoto(file,c))}catch(err){toast('Une photo n’a pas pu être ajoutée')}}
 try{localStorage.setItem(LS+'-auteur',v.auteur)}catch(err){}
-c.journal.push({id:uid(),date:v.date,auteur:v.auteur.trim(),heures:+v.heures||0,note:v.note.trim(),photos});
-if(c.statut==='prevu')c.statut='en_cours';closeSheet();save();render();toast('Ajouté au journal')}
+const cj=find(c.id)||c;cj.journal.push({id:uid(),date:v.date,auteur:v.auteur.trim(),heures:+v.heures||0,note:v.note.trim(),photos});
+if(cj.statut==='prevu')cj.statut='en_cours';closeSheet();save();render();toast('Ajouté au journal')}
 else if(t==='settings'){D.reglages.entreprise=v.entreprise.trim()||'Mon entreprise';KEYS.forEach(k=>D.reglages.modules[k]=String(v['l_'+k]||'').trim()||lbl(k));closeSheet();save();render()}
 else if(t==='import'){try{const o=JSON.parse(await v.file.text());if(!o||!Array.isArray(o.chantiers)||!o.reglages)throw 0;ask('Remplacer toutes les données par cette sauvegarde ?',()=>{o.chantiers.forEach(norm);D=o;save();teardown();render()})}catch(err){toast('Sauvegarde illisible')}}});
 
