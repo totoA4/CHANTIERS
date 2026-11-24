@@ -170,8 +170,8 @@ const hm=all.reduce((s,c)=>s+c.journal.filter(j=>String(j.date).startsWith(m)).r
 return `<header class="hero"><div class="hero-in"><div class="toprow"><div><p class="date">${fdl(iso())}</p><h1>${esc(D.reglages.entreprise)}</h1></div><button class="ibtn" data-act="settings" aria-label="Réglages">${ICON.set}</button></div>
 <div class="kpis"><div><b>${enc.length}</b><span>en cours</span></div><div><b>${av.length}</b><span>à venir</span></div><div><b>${fmtH(hm)}</b><span>ce mois-ci</span></div></div></div>${HILLS}</header>
 <main class="wrap"><div class="tiles">${KEYS.map(tile).join('')}</div>
-${homeEnt()}<h2 class="sec">Carte des chantiers</h2><div class="homemap" id="homemap"></div><p class="attr" style="margin-top:6px">Chantiers en cours, à venir et en pause · © OpenStreetMap</p>
-<h2 class="sec">Chantiers en cours</h2>${enc.length?`<div class="list">${enc.map(card).join('')}</div>`:'<p class="empty">Aucun chantier en cours.</p>'}
+${homeEnt()}<div class="hgrid"><section class="hmap"><h2 class="sec">Carte des chantiers</h2><div class="homemap" id="homemap"></div><p class="attr" style="margin-top:6px">Chantiers en cours, à venir et en pause · © OpenStreetMap</p></section>
+<section class="hlist"><h2 class="sec">Chantiers en cours</h2>${enc.length?`<div class="list">${enc.map(card).join('')}</div>`:'<p class="empty">Aucun chantier en cours.</p>'}</section></div>
 ${D.exemples?'<p class="note">Les chantiers affichés sont des exemples. <button class="link" data-act="clear-ex">Les effacer</button></p>':''}</main>`}
 function weekRows(y,w){return D.chantiers.filter(c=>c.module==='entretien').map(c=>({c,ps:c.prestations.filter(p=>p.sem.includes(w))})).filter(r=>r.ps.length)}
 function homeEnt(){if(!D.chantiers.some(c=>c.module==='entretien'))return '';const {y,w}=isoW(new Date()),rows=weekRows(y,w),t=rows.reduce((s,r)=>s+r.ps.length,0),d=rows.reduce((s,r)=>s+r.ps.filter(p=>p.faits[y+'-'+w]).length,0);
@@ -201,6 +201,7 @@ liste:sv('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circl
 function tabsFor(kind,mod){const t=(k,l)=>({k,l,i:TI[k]});
 if(kind==='mod')return mod==='entretien'?[t('plan','Planning'),t('liste','Sites'),t('ops','Opérations'),t('carte','Carte')]:[t('liste','Chantiers'),t('ops','Opérations'),t('carte','Carte')];
 return mod==='entretien'?[t('prest','Passages'),t('carte','Carte'),t('photos','Photos'),t('ops','Opérations'),t('fiche','Infos')]:[t('fiche','Fiche'),t('carte','Carte'),t('photos','Photos'),t('ops','Opérations')]}
+const wide=()=>innerWidth>=1100;let WIDE=wide();
 let CUR={},PZ=null,PMODE=null,LASTKEY=null,OF='ouv';
 const goTab=t=>{location.hash=(CUR.kind==='det'?'c-'+CUR.c.id:'m-'+CUR.mod)+'--'+t};
 function frame(kind,mod,c,tabs,tab){let sub='';
@@ -260,12 +261,14 @@ function render(){if(authState==='wait'||authState==='login'){teardown();documen
 const h=location.hash.slice(1),[b0,t0]=h.split('--');let kind='home',mod=null,c=null;
 if(b0.startsWith('m-')&&KEYS.includes(b0.slice(2))){kind='mod';mod=b0.slice(2)}
 else if(b0.startsWith('c-')&&(c=find(b0.slice(2)))){kind='det';mod=c.module}
-if(kind==='home'){CUR={kind};document.body.classList.remove('mapview');teardown();$('#root').innerHTML=vHome();initHomeMap();if(h!==last)window.scrollTo(0,0);last=h;LASTKEY=null;return}
+if(kind==='home'){CUR={kind};document.body.classList.remove('mapview','split');teardown();$('#root').innerHTML=vHome();initHomeMap();if(h!==last)window.scrollTo(0,0);last=h;LASTKEY=null;return}
 const tabs=tabsFor(kind,mod),tab=(tabs.find(x=>x.k===t0)||tabs[0]).k;CUR={kind,mod,c,tab};
 const key=kind+':'+(c?c.id:mod)+':'+tab;
-if(tab==='carte'){document.body.classList.add('mapview');
-if(!V||V.key!==key){teardown();window.scrollTo(0,0);$('#root').innerHTML=frame(kind,mod,c,tabs,tab)+mapShell(kind==='det',mod);mount(kind,mod,key);drawOverlays();updTools();fit();if(PMODE&&V.map){const pm=PMODE;PMODE=null;setMode(pm)}geoMissing(c?[c]:D.chantiers.filter(x=>x.module===mod))}
-else{$('.vtop').outerHTML=frame(kind,mod,c,tabs,tab);placeMap();drawOverlays();updTools()}
+const split=wide()&&tab!=='carte';document.body.classList.toggle('split',split);
+if(tab==='carte'||split){document.body.classList.toggle('mapview',tab==='carte');const main=()=>`<main class="wrap tabc" id="tabc" style="--mc:var(--${mod})">${content(kind,mod,c,tab)}${ATTR}</main>`;
+if(!V||V.key!==key){teardown();window.scrollTo(0,0);if(split&&kind==='mod'&&b0!==String(last).split('--')[0])q='';$('#root').innerHTML=frame(kind,mod,c,tabs,tab)+(split?`<div class="splitw">${main()}${mapShell(kind==='det',mod)}</div>`:mapShell(kind==='det',mod));mount(kind,mod,key);drawOverlays();updTools();fit();if(PMODE&&V.map){const pm=PMODE;PMODE=null;setMode(pm)}geoMissing(c?[c]:D.chantiers.filter(x=>x.module===mod))}
+else{$('.vtop').outerHTML=frame(kind,mod,c,tabs,tab);if(split)$('#tabc').outerHTML=main();placeMap();drawOverlays();updTools()}
+if(split){loadPhotos();const wc=$('#wcur');if(wc){const st=wc.parentElement;st.scrollLeft=wc.offsetLeft-st.offsetLeft-st.clientWidth/2+wc.clientWidth/2}}
 LASTKEY=key;last=h;return}
 document.body.classList.remove('mapview');const y=window.scrollY,keep=key===LASTKEY;teardown();
 if(kind==='mod'&&b0!==String(last).split('--')[0])q='';
@@ -438,6 +441,6 @@ else if(t==='settings'){D.reglages.entreprise=v.entreprise.trim()||'Mon entrepri
 else if(t==='import'){try{const o=JSON.parse(await v.file.text());if(!o||!Array.isArray(o.chantiers)||!o.reglages)throw 0;ask('Remplacer toutes les données par cette sauvegarde ?',()=>{o.chantiers.forEach(norm);D=o;save();teardown();render()})}catch(err){toast('Sauvegarde illisible')}}});
 
 window.addEventListener('hashchange',()=>{closeSheet();render()});
-window.addEventListener('resize',placeMap);
+window.addEventListener('resize',()=>{if(wide()!==WIDE){WIDE=wide();teardown();LASTKEY=null;render()}else placeMap()});
 render();if(FB)startCloud();
 }

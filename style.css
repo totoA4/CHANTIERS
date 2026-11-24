@@ -217,3 +217,86 @@ body.mapview{overflow:hidden}
 .wk.x2{color:var(--muted);margin-left:auto}
 .ph a{color:inherit}
 body.dmax .tools,body.dmax .hintbar{display:none}
+
+/* ===== Onglets (en-tête de module / de site) ===== */
+.vtop{position:sticky;top:0;z-index:8;background:var(--mc);color:#fff;padding-top:env(safe-area-inset-top);box-shadow:0 2px 12px rgba(0,0,0,.14)}
+.vh{padding:4px max(4vw,14px) 14px;max-width:900px;margin:0 auto}
+.vback{display:inline-flex;align-items:center;gap:4px;min-height:44px;font-weight:600;font-size:16px;opacity:.95}
+.vt{display:flex;align-items:center;gap:12px}
+.vic{display:flex;flex:none}.vic svg{width:40px;height:40px}
+.vt h1{font-size:clamp(26px,7vw,40px)}
+.vt p{margin:4px 0 0;opacity:.9;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vt>div{min-width:0;flex:1}
+.vnew{margin-left:auto;flex:none;background:#fff;color:var(--mc);border:0;border-radius:14px;min-height:52px;padding:0 16px;font-weight:700;font-size:17px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.vtabs{display:flex;background:var(--bg);color:var(--ink);overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:none}
+.vtabs::-webkit-scrollbar{display:none}
+.vtab{flex:1 1 0;min-width:68px;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:700;font-size:14px;color:var(--muted);border-bottom:5px solid transparent;padding:6px 2px;white-space:nowrap}
+.vtab svg{width:30px;height:30px}
+.vtab.on{color:var(--ink);border-bottom-color:var(--mc);background:light-dark(#fff,#17231b)}
+.vtab.on svg{color:var(--mc)}
+:root[data-theme=dark] .vtab.on svg{filter:brightness(1.7)}
+.tabc{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-rows:max-content;gap:14px;padding-bottom:calc(48px + env(safe-area-inset-bottom))}
+.tabc .seg{background:light-dark(#e2e8de,#223027);margin:0}
+.tabc .seg button{color:var(--ink)}
+.tabc .seg button.on{background:var(--mc);color:#fff}
+.tabc .sec{font-size:26px}
+/* ===== Onglet Carte ===== */
+.mapfull{position:fixed;left:0;right:0;bottom:0;top:200px;z-index:0}
+.mapfull .mapbg{position:absolute;inset:0}
+.mapfull .tools{position:absolute;top:10px;right:10px}
+.mapfull .hintbar{position:absolute;top:10px;left:10px;right:102px}
+.mattr{position:absolute;left:8px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:5;margin:0;font-size:11px;background:rgba(255,255,255,.85);color:#333;padding:2px 6px;border-radius:6px}
+/* ===== Photos ===== */
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.gal figure{margin:0}
+.pht{display:block;width:100%;border:0;padding:0;background:light-dark(#e4eae0,#26332a);border-radius:12px;overflow:hidden;cursor:pointer;aspect-ratio:1}
+.pht img{width:100%;height:100%;object-fit:cover;display:block}
+.phr .pht{width:96px;height:96px;flex:none}
+.phr .pht img{width:96px;height:96px;border-radius:0}
+.gal figcaption{font-size:14px;margin-top:4px;line-height:1.3}
+.gal figcaption span{color:var(--muted);font-size:13px}
+label.btn{cursor:pointer}
+/* ===== Opérations spéciales ===== */
+.op{display:grid;gap:8px}
+.op h3{font-size:22px}
+.op .seg{grid-template-columns:repeat(3,minmax(0,1fr))}
+.op .mod{color:var(--mc)}
+
+/* ===== Version ordinateur (écrans larges) ===== */
+@media (min-width:1100px){
+  body{font-size:17px}
+  .wrap{max-width:1440px;padding-left:32px;padding-right:32px}
+  .hero-in{max-width:1440px;padding-left:32px;padding-right:32px}
+  .hero h1{font-size:56px}
+  .kpis{max-width:720px}
+  .tiles{grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}
+  .tiles .tile:nth-child(5){grid-column:auto;min-height:150px}
+  .tile{min-height:150px;padding:20px}
+  .tile .ti svg{width:42px;height:42px}
+  .tn{font-size:28px}
+  .hgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:28px;align-items:start}
+  .hgrid .hmap{order:2;position:sticky;top:16px}
+  .hgrid .homemap{height:calc(100vh - 140px);min-height:420px}
+  .hgrid .list{grid-template-columns:minmax(0,1fr)}
+  .list{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+  .vh{max-width:none;padding:10px 32px 18px}
+  .vt h1{font-size:44px}
+  .vic svg{width:48px;height:48px}
+  .vtabs{padding:0 20px;gap:4px}
+  .vtab{flex:0 0 auto;flex-direction:row;gap:10px;min-width:150px;min-height:64px;padding:0 22px;font-size:17px;border-radius:12px 12px 0 0}
+  .vtab svg{width:26px;height:26px}
+  .vtab:hover{background:light-dark(#f4f7f1,#1b281f);color:var(--ink)}
+  /* fiche à gauche, carte toujours visible à droite */
+  body.split .splitw .tabc{width:min(680px,46vw);max-width:none;margin:0;padding:22px 26px 60px 32px}
+  body.split .splitw .tabc .list{grid-template-columns:minmax(0,1fr)}
+  body.split .mapfull{left:min(680px,46vw);border-left:1px solid var(--line);box-shadow:-4px 0 14px rgba(0,0,0,.06)}
+  .mapfull .tools{width:96px}
+  .tool{min-height:46px;font-size:15px}
+  .mapfull .hintbar{right:118px;max-width:560px}
+  .gal{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+  .sh{max-width:720px}
+}
+@media (min-width:1600px){
+  body.split .splitw .tabc{width:760px}
+  body.split .mapfull{left:760px}
+}

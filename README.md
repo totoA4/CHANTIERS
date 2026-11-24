@@ -2,6 +2,10 @@
 
 Application web pour iPhone qui sert au suivi des chantiers d'une entreprise de paysage. Elle compte quatre modules : Chantier François, Élagage, Plantation et Broyage, plus un module Entretien qui suit les marchés d'entretien semaine par semaine. Chaque module a une carte OpenStreetMap, avec le cadastre IGN, les parcelles et des annotations.
 
+## Ordinateur et iPhone
+
+La même adresse sert aux deux. Sur un écran large (1 100 px et plus), l'app passe en version ordinateur : la fiche s'affiche à gauche et la carte reste visible à droite, l'accueil est organisé en colonnes, et les onglets et les textes sont plus grands. Sur iPhone, l'affichage est en une seule colonne, avec la carte dans son propre onglet.
+
 ## Fichiers
 
 | Fichier | Rôle |
