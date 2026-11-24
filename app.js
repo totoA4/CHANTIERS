@@ -15,6 +15,7 @@ elagage:sv('<circle cx="12" cy="8.5" r="6"/><path d="M12 22v-8M12 15l-3-3M12 13l
 plantation:sv('<path d="M12 21v-9"/><path d="M12 12c0-4-3-6-7-6 0 4 3 6 7 6z"/><path d="M12 10c0-3 2-5 6-5 0 3-2 5-6 5z"/><path d="M6 21h12"/>'),
 broyage:sv('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>'),
 entretien:sv('<path d="M3 20h18"/><path d="M6 20c0-4 1-7 2-9M10 20c0-5 1-9 3-12M14 20c0-4 1-6 3-8M18 20c0-3 .5-5 1.5-6"/>'),
+cal:sv('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7 14h3M14 14h3M7 18h3"/>'),
 back:sv('<path d="M15 5l-7 7 7 7"/>'),
 plus:sv('<path d="M12 5v14M5 12h14"/>'),
 set:sv('<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="7" cy="18" r="2" fill="currentColor"/>')};
@@ -169,7 +170,7 @@ function vHome(){const all=D.chantiers.filter(c=>c.module!=='entretien'),enc=all
 const hm=all.reduce((s,c)=>s+c.journal.filter(j=>String(j.date).startsWith(m)).reduce((a,j)=>a+(+j.heures||0),0),0);
 return `<header class="hero"><div class="hero-in"><div class="toprow"><div><p class="date">${fdl(iso())}</p><h1>${esc(D.reglages.entreprise)}</h1></div><button class="ibtn" data-act="settings" aria-label="Réglages">${ICON.set}</button></div>
 <div class="kpis"><div><b>${enc.length}</b><span>en cours</span></div><div><b>${av.length}</b><span>à venir</span></div><div><b>${fmtH(hm)}</b><span>ce mois-ci</span></div></div></div>${HILLS}</header>
-<main class="wrap"><div class="tiles">${KEYS.map(tile).join('')}</div>
+<main class="wrap"><div class="tiles">${KEYS.map(tile).join('')}</div><a class="calbtn" href="#cal">${ICON.cal}<span><b>Calendrier</b><small>Tous les chantiers semaine par semaine</small></span><span class="go">›</span></a>
 ${homeEnt()}<div class="hgrid"><section class="hmap"><h2 class="sec">Carte des chantiers</h2><div class="homemap" id="homemap"></div><p class="attr" style="margin-top:6px">Chantiers en cours, à venir et en pause · © OpenStreetMap</p></section>
 <section class="hlist"><h2 class="sec">Chantiers en cours</h2>${enc.length?`<div class="list">${enc.map(card).join('')}</div>`:'<p class="empty">Aucun chantier en cours.</p>'}</section></div>
 ${D.exemples?'<p class="note">Les chantiers affichés sont des exemples. <button class="link" data-act="clear-ex">Les effacer</button></p>':''}</main>`}
@@ -242,7 +243,7 @@ const tel=c.tel?`${esc(c.tel)} · <a href="tel:${esc(c.tel.replace(/[^\d+]/g,'')
 const det=FIELDS[c.module].map(f=>row(esc(f.l),esc(c.details[f.k]))).join('');
 const tot=c.parcelles.reduce((s,x)=>s+(+x.contenance||0),0);
 const J=[...c.journal].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-return `<div class="seg" role="group" aria-label="Statut">${Object.keys(ST).map(s=>`<button class="${c.statut===s?'on':''}" data-act="status" data-v="${s}">${ST[s]}</button>`).join('')}</div>
+return `${p===100&&c.statut!=='termine'?`<button class="btn wide donebtn" data-act="status" data-v="termine">✓ Travail effectué à 100 % : marquer comme terminé</button>`:''}${c.statut==='termine'?`<p class="donemsg">✓ Chantier terminé${c.fin?' le '+esc(fdl(c.fin)):''}</p>`:''}<div class="seg" role="group" aria-label="Statut">${Object.keys(ST).map(s=>`<button class="${c.statut===s?'on':''}" data-act="status" data-v="${s}">${ST[s]}</button>`).join('')}</div>
 <section class="panel stats"><div><b>${p} %</b><span>avancement</span><div class="bar"><i style="width:${p}%"></i></div></div><div><b>${fmtH(h)}${hp?' / '+fmtH(hp):''}</b><span>${hp?'réalisées / prévues':'heures réalisées'}</span><div class="bar ${hp&&h>hp?'over':''}"><i style="width:${hp?Math.min(100,h*100/hp):0}%"></i></div></div></section>
 <section class="panel"><div class="ph"><h2>Parcelles cadastrales</h2><button class="btn sm" data-act="mode" data-v="parcelle">${ICON.plus}Parcelle</button></div>
 ${c.parcelles.length?`<ul class="plist">${c.parcelles.map((x,i)=>`<li><i class="dot" style="background:${col}"></i><button class="lk" data-act="zoomp" data-i="${i}"><b>Section ${esc(x.section)} n° ${esc(x.numero)}</b><span>${esc(x.commune)} · ${x.estimee?'≈ ':''}${fmtA(+x.contenance||0)}</span></button><button class="x" data-act="delp" data-i="${i}" aria-label="Retirer la parcelle">×</button></li>`).join('')}</ul><p class="tot">Surface cadastrale totale : ${fmtA(tot)}</p>`:'<p class="hint">Touchez « Parcelle » : la carte s’ouvre, puis touchez les parcelles du site.</p>'}</section>
@@ -257,10 +258,43 @@ ${J.length?J.map(j=>`<article class="je"><div class="jh"><b>${esc(fdl(j.date))}<
 <div class="actions"><button class="btn" data-act="edit">Modifier</button><button class="btn" data-act="dup">Dupliquer</button><button class="btn danger" data-act="del">Supprimer</button></div>`}
 function content(kind,mod,c,tab){if(kind==='mod')return tab==='plan'?dPlan():tab==='ops'?dOpsMod(mod):dList(mod);return tab==='prest'?dPrest(c):tab==='photos'?dPhotos(c):tab==='ops'?dOps(c):dFiche(c)}
 
+/* ---------- calendrier : chantiers × semaines ---------- */
+let CW=null;
+const wKey=o=>o.y*100+o.w;
+const dW=d=>{if(!d)return null;const t=new Date(d+'T12:00');return isNaN(t)?null:isoW(t)};
+const weeksFrom=(o,n)=>{const a=[];let x=o;for(let i=0;i<n;i++){a.push(x);x=wStep(x,1)}return a};
+function calData(ws){const rows=[];
+KEYS.forEach(m=>{const items=[];D.chantiers.filter(c=>c.module===m).sort(sorter).forEach(c=>{
+const cells=ws.map(o=>{const k=wKey(o);let bar=false,n=0,d=0,op=0,opd=0;
+if(m!=='entretien'){const a=dW(c.debut),b=dW(c.fin)||a;if(a&&k>=wKey(a)&&k<=wKey(b))bar=true}
+else c.prestations.forEach(p=>{if(p.sem.includes(o.w)){n++;if(p.faits[o.y+'-'+o.w])d++}});
+c.ops.forEach(x=>{const ow=dW(x.date);if(ow&&wKey(ow)===k){op++;if(x.statut==='fait')opd++}});return{o,bar,n,d,op,opd}});
+if(cells.some(x=>x.bar||x.n||x.op))items.push({c,cells})});if(items.length)rows.push({m,items})});return rows}
+function vCal(){const now=isoW(new Date());if(!CW)CW=wStep(now,-1);const N=wide()?20:12,ws=weeksFrom(CW,N),rows=calData(ws),nk=wKey(now);
+const f=o=>wStart(o.y,o.w).toLocaleDateString('fr-FR',{day:'numeric',month:'short',timeZone:'UTC'});
+const head=`<div class="ch0">Chantier</div>`+ws.map(o=>`<div class="chw ${wKey(o)===nk?'now':''}"><b>S${o.w}</b><small>${esc(f(o))}</small></div>`).join('');
+const body=rows.map(r=>`<div class="cgrp" style="--mc:var(--${r.m})"><span>${ICON[r.m]}${esc(lbl(r.m))}</span></div>`+r.items.map(({c,cells})=>{
+const lk=c.module==='entretien'?'#c-'+esc(c.id)+'--prest':'#c-'+esc(c.id);
+return `<a class="clab" href="${lk}" style="--mc:var(--${c.module})"><b>${esc(c.titre)}</b><small>${c.module==='entretien'?'Entretien':ST[c.statut]}</small></a>`+cells.map((x,i)=>{
+const cls=['cc',wKey(x.o)===nk?'now':''];let inner='';
+if(x.bar){cls.push('cbar','st-'+c.statut);if(!(cells[i-1]&&cells[i-1].bar))cls.push('bs');if(!(cells[i+1]&&cells[i+1].bar))cls.push('be')}
+if(x.n){inner+=`<span class="cn ${x.d===x.n?'ok':''}">${x.d===x.n?'✓':x.n}</span>`}
+if(x.op){inner+=`<span class="opm ${x.opd===x.op?'ok':''}" title="Opération spéciale">⚡${x.op>1?x.op:''}</span>`}
+const href=x.op&&!x.n&&!x.bar?'#c-'+esc(c.id)+'--ops':lk;
+return x.bar||x.n||x.op?`<a class="${cls.join(' ')}" href="${href}" style="--mc:var(--${c.module})" aria-label="${esc(c.titre)} semaine ${x.o.w}">${inner}</a>`:`<span class="${cls.join(' ')}"></span>`}).join('')}).join('')).join('');
+const ent=weekRows(now.y,now.w),cur=D.chantiers.filter(c=>c.module!=='entretien'&&c.statut!=='termine'&&(()=>{const a=dW(c.debut),b=dW(c.fin)||a;return a&&nk>=wKey(a)&&nk<=wKey(b)})());
+return `<div class="vtop" style="--mc:#1d3a2a"><header class="vh"><a class="vback" href="#">${ICON.back}Accueil</a><div class="vt"><span class="vic">${ICON.cal}</span><div><h1>Calendrier</h1><p>${esc(wLbl(ws[0].y,ws[0].w).split(' – ')[0])} → ${esc(wLbl(ws[N-1].y,ws[N-1].w).split(' – ')[1])}</p></div></div></header></div>
+<main class="wrap tabc calpage" style="--mc:#2f7a3a">
+<div class="calnav"><button class="btn" data-act="calnav" data-n="-4" aria-label="Semaines précédentes">‹ Avant</button><button class="btn primary" data-act="caltoday">Cette semaine</button><button class="btn" data-act="calnav" data-n="4" aria-label="Semaines suivantes">Après ›</button></div>
+<p class="tot" style="margin:0">Semaine ${now.w} : ${cur.length} chantier${cur.length>1?'s':''} en cours · ${ent.reduce((a,r)=>a+r.ps.length,0)} passage${ent.reduce((a,r)=>a+r.ps.length,0)>1?'s':''} d’entretien sur ${ent.length} site${ent.length>1?'s':''}</p>
+<div class="calw"><div class="cal" style="--n:${N}">${head}${rows.length?body:'<p class="calempty">Rien de prévu sur ces semaines.</p>'}</div></div>
+<div class="legend"><span><i class="lg lgbar"></i>Chantier (du début à la fin prévue)</span><span><i class="lg cn">3</i>Passages d’entretien prévus</span><span><i class="lg cn ok">✓</i>Tous faits</span><span><i class="lg">⚡</i>Opération spéciale</span></div>
+<p class="hint">Touchez une case pour ouvrir le chantier. Un chantier sans date de début n’apparaît pas.</p></main>`}
 function render(){if(authState==='wait'||authState==='login'){teardown();document.body.classList.remove('mapview');$('#root').innerHTML=authState==='wait'?'<div class="login"><p class="lwait">Connexion…</p></div>':vLogin();return}
 const h=location.hash.slice(1),[b0,t0]=h.split('--');let kind='home',mod=null,c=null;
 if(b0.startsWith('m-')&&KEYS.includes(b0.slice(2))){kind='mod';mod=b0.slice(2)}
 else if(b0.startsWith('c-')&&(c=find(b0.slice(2)))){kind='det';mod=c.module}
+if(b0==='cal'){CUR={kind:'cal'};document.body.classList.remove('mapview','split');teardown();const y=window.scrollY,keep=last==='cal';$('#root').innerHTML=vCal();const cw=$('.calw'),nw=$('.chw.now');if(cw&&nw)cw.scrollLeft=Math.max(0,nw.offsetLeft-160);window.scrollTo(0,keep?y:0);last=h;LASTKEY=null;return}
 if(kind==='home'){CUR={kind};document.body.classList.remove('mapview','split');teardown();$('#root').innerHTML=vHome();initHomeMap();if(h!==last)window.scrollTo(0,0);last=h;LASTKEY=null;return}
 const tabs=tabsFor(kind,mod),tab=(tabs.find(x=>x.k===t0)||tabs[0]).k;CUR={kind,mod,c,tab};
 const key=kind+':'+(c?c.id:mod)+':'+tab;
@@ -317,6 +351,7 @@ ${inp('entreprise','Nom de l’entreprise',D.reglages.entreprise)}<fieldset><leg
 <button class="btn primary wide">Enregistrer</button>
 ${FB?(cloud&&cloud.user?`<p class="hint">Connecté : ${esc(cloud.user.email)}. Les chantiers sont partagés en temps réel avec toute l’équipe.</p><button type="button" class="btn" data-act="logout">Se déconnecter</button>`:'<p class="hint">Serveur injoignable pour le moment : les modifications seront envoyées dès le retour de la connexion.</p>'):'<p class="hint">Mode local : les données sont enregistrées sur ce téléphone uniquement.</p><button type="button" class="btn" data-act="fb-setup">Activer le partage d’équipe</button>'}${FB_LOCAL?'<p class="hint">Partage activé sur ce téléphone seulement. Pour que tous les téléphones soient reliés automatiquement, copiez le fichier config.js et envoyez-le sur GitHub.</p><div class="two"><button type="button" class="btn" data-act="fb-copy">Copier config.js</button><button type="button" class="btn danger" data-act="fb-off">Désactiver</button></div>':''}
 <div class="two"><button type="button" class="btn" data-act="dl">Télécharger la sauvegarde</button><button type="button" class="btn" data-act="imp">Importer…</button></div></form>`}
+function finish(c){c.statut='termine';if(!c.fin)c.fin=iso();save();render();toast('Chantier terminé ✓')}
 function ask(msg,fn){openSheet(`<div class="sh-in"><p class="ask">${esc(msg)}</p><div class="two"><button class="btn" data-act="close">Annuler</button><button class="btn danger-fill" data-act="ok">Confirmer</button></div></div>`);pending=fn}
 function openSheet(h){closeSheet();const d=document.createElement('div');d.id='sheet';d.innerHTML=`<div class="scrim" data-act="close"></div><div class="sh" role="dialog" aria-modal="true">${h}</div>`;document.body.appendChild(d);document.body.classList.add('lock')}
 function closeSheet(){const s=$('#sheet');if(s)s.remove();document.body.classList.remove('lock')}
@@ -367,8 +402,8 @@ case 'settings':openSheet(fSettings());break;
 case 'filt':filt=b.dataset.v;render();break;
 case 'new':openSheet(fChantier(null,b.dataset.m));break;
 case 'edit':openSheet(fChantier(c));break;
-case 'status':c.statut=b.dataset.v;if(c.statut==='termine'&&!c.fin)c.fin=iso();save();render();break;
-case 'task':c.taches[+b.dataset.i].done=b.checked;save();render();break;
+case 'status':if(b.dataset.v==='termine'){finish(c);break}c.statut=b.dataset.v;save();render();break;
+case 'task':c.taches[+b.dataset.i].done=b.checked;save();render();if(b.checked&&c.statut!=='termine'&&c.taches.length&&c.taches.every(t=>t.done))ask(`Toutes les tâches sont faites (100 %). Marquer « ${c.titre} » comme terminé ?`,()=>finish(c));break;
 case 'deltask':c.taches.splice(+b.dataset.i,1);save();render();break;
 case 'journal':openSheet(fJournal());break;
 case 'zoom':openSheet(`<div class="sh-in"><div class="sh-h"><h2>Photo</h2><button class="ibtn" data-act="close" aria-label="Fermer">×</button></div><img class="zoom" src="${esc(phSrc(b.dataset.src))}" alt="Photo du chantier"></div>`);break;
@@ -407,6 +442,8 @@ case 'opedit':{const s0=find(b.dataset.c),o=s0&&s0.ops.find(x=>x.id===b.dataset.
 case 'opdel':ask('Supprimer cette opération ?',()=>{const s0=find(b.dataset.c);if(!s0)return;const o=s0.ops.find(x=>x.id===b.dataset.o);if(o)delPhotos(o.photos);s0.ops=s0.ops.filter(x=>x.id!==b.dataset.o);save();render()});break;
 case 'opst':{const s0=find(b.dataset.c),o=s0&&s0.ops.find(x=>x.id===b.dataset.o);if(o){o.statut=b.dataset.v;if(o.statut==='fait'&&!o.fait)o.fait=iso();save();render()}break}
 case 'of':OF=b.dataset.v;render();break;
+case 'calnav':CW=wStep(CW||isoW(new Date()),+b.dataset.n);render();break;
+case 'caltoday':CW=wStep(isoW(new Date()),-1);render();break;
 case 'close':closeSheet();break;
 case 'ok':{const f=pending;pending=null;closeSheet();if(f)f();break}}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&!b.closest('.leaflet-popup'))act(b)});

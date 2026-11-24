@@ -6,6 +6,11 @@ Application web pour iPhone qui sert au suivi des chantiers d'une entreprise de 
 
 La même adresse sert aux deux. Sur un écran large (1 100 px et plus), l'app passe en version ordinateur : la fiche s'affiche à gauche et la carte reste visible à droite, l'accueil est organisé en colonnes, et les onglets et les textes sont plus grands. Sur iPhone, l'affichage est en une seule colonne, avec la carte dans son propre onglet.
 
+## Calendrier et fin de chantier
+
+- **Calendrier** (bouton sur l'accueil, adresse `#cal`) : les chantiers en lignes et les semaines en colonnes. Une barre colorée va du début à la fin prévue du chantier. Un nombre indique les passages d'entretien de la semaine (✓ quand ils sont tous faits). ⚡ signale une opération spéciale.
+- **Terminé** : quand toutes les tâches d'un chantier sont cochées, l'app propose de le marquer comme terminé. La date de fin est alors remplie automatiquement.
+
 ## Fichiers
 
 | Fichier | Rôle |
