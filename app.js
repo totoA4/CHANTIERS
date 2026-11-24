@@ -2,7 +2,7 @@
 {
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const KEYS=['francois','elagage','plantation','broyage','entretien'];
+const KEYS=['entretien','francois','elagage','plantation','broyage'];
 const DEFL={francois:'Chantier François',elagage:'Élagage',plantation:'Plantation',broyage:'Broyage',entretien:'Entretien'};
 const ST={prevu:'À venir',en_cours:'En cours',pause:'En pause',termine:'Terminé'};
 const ORD={en_cours:0,prevu:1,pause:2,termine:3};
@@ -30,7 +30,7 @@ francois:[{k:'travaux',l:'Type de travaux'},{k:'surface',l:'Surface (m²)',t:'nu
 elagage:[{k:'arbres',l:'Nombre d’arbres',t:'number'},{k:'essences',l:'Essences'},{k:'hauteur',l:'Hauteur max (m)',t:'number'},{k:'technique',l:'Technique',o:['Grimpe','Nacelle','Démontage','Abattage','Taille douce']},{k:'evac',l:'Rémanents',o:['Évacués','Broyés sur place','Laissés au client']},{k:'reseaux',l:'Réseaux à proximité',o:['Non','Oui – lignes électriques','Oui – voirie','Oui – autre']}],
 plantation:[{k:'vegetaux',l:'Végétaux (une ligne par essence)',t:'area'},{k:'paillage',l:'Paillage',o:['Aucun','Copeaux','Toile','Feutre biodégradable']},{k:'arrosage',l:'Arrosage',o:['Manuel','Goutte-à-goutte','Par le client']},{k:'garantie',l:'Garantie de reprise (mois)',t:'number'}],
 broyage:[{k:'volume',l:'Volume estimé (m³)',t:'number'},{k:'matiere',l:'Matière',o:['Branchages','Souches','Déchets verts mixtes']},{k:'machine',l:'Machine',o:['Broyeur thermique','Broyeur tracté','Rogneuse de souches']},{k:'copeaux',l:'Copeaux',o:['Laissés sur place','Paillage massifs','Évacués']}],
-entretien:[{k:'marche',l:'Marché'},{k:'lot',l:'N° de site'}]};
+entretien:[{k:'marche',l:'Référence du marché'},{k:'lot',l:'N° de site'}]};
 const HILLS='<svg class="hills" viewBox="0 0 400 96" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><rect x="28" y="46" width="4" height="24" fill="#1a3423"/><circle cx="30" cy="42" r="15" fill="#3d7148"/><rect x="68" y="40" width="4" height="30" fill="#1a3423"/><circle cx="70" cy="34" r="19" fill="#356a41"/><rect x="116" y="50" width="4" height="20" fill="#1a3423"/><circle cx="118" cy="46" r="12" fill="#447a4e"/><rect x="248" y="44" width="4" height="26" fill="#1a3423"/><circle cx="250" cy="39" r="17" fill="#3a6f45"/><rect x="298" y="38" width="4" height="32" fill="#1a3423"/><circle cx="300" cy="32" r="21" fill="#33663e"/><rect x="348" y="48" width="4" height="22" fill="#1a3423"/><circle cx="350" cy="44" r="13" fill="#447a4e"/><rect x="383" y="44" width="4" height="26" fill="#1a3423"/><circle cx="385" cy="40" r="15" fill="#3d7148"/><path d="M95 36 l7 26 h-14z" fill="#2c5a36"/><path d="M190 40 l7 26 h-14z" fill="#2c5a36"/><path d="M330 34 l7 26 h-14z" fill="#2c5a36"/><path d="M0 66 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 q10 -10 20 0 V78 H0z" fill="#4f8b4a"/><circle cx="150" cy="62" r="6" fill="#5c9a52"/><circle cx="215" cy="62" r="6" fill="#5c9a52"/><circle cx="280" cy="62" r="6" fill="#5c9a52"/><path d="M0 74 C120 70 280 70 400 74 V96 H0z" fill="#7fb36a"/><path d="M0 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M40 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M80 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M120 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M160 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M200 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M240 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M280 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M320 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M360 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M400 74 l20 0 l-12 22 h-20z" fill="#8fc078"/><path d="M0 86 C130 80 270 80 400 86 V96 H0z" fill="var(--bg)" opacity=".9"/></svg>';
 const LS='paysage-carte-v1';
 /* ---------- partage d'équipe : config.js, sinon configuration collée dans l'app ---------- */
@@ -69,13 +69,19 @@ const passCount=(c,y)=>{let t=0,d=0;(c.prestations||[]).forEach(p=>p.sem.forEach
 const eur=m=>(+m||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:2});
 const fmtJ=j=>j?String(+j).replace('.',',')+' j':'';
 let PW=isoW(new Date()),ET='plan';
+/* ---------- contrats annuels d'entretien (CCBVL, CCI…) ---------- */
+let CTR='';try{CTR=localStorage.getItem('paysage-carte-v1-contrat')||''}catch(e){}
+const contrats=()=>{const a=[...((D.reglages&&D.reglages.contrats)||['CCBVL','CCI'])];D.chantiers.forEach(c=>{if(c.module==='entretien'&&c.contrat&&!a.includes(c.contrat))a.push(c.contrat)});return a};
+const setCtr=v=>{CTR=v||'';try{localStorage.setItem('paysage-carte-v1-contrat',CTR)}catch(e){}};
+const inMod=(c,m)=>c.module===m&&(m!=='entretien'||!CTR||c.contrat===CTR);
 const prog=c=>{if(c.statut==='termine')return 100;if(c.module==='entretien'){const k=passCount(c,isoW(new Date()).y);return k.t?Math.round(k.d*100/k.t):0}return c.taches.length?Math.round(c.taches.filter(t=>t.done).length*100/c.taches.length):0};
 const hrs=c=>c.journal.reduce((s,j)=>s+(+j.heures||0),0);
 const safe=s=>/^(data:image\/|https:\/\/)/.test(String(s))?s:'';
 const sorter=(a,b)=>(ORD[a.statut]-ORD[b.statut])||String(a.debut).localeCompare(String(b.debut));
 const hasG=c=>!!c&&c.lat!==''&&c.lat!=null&&c.lon!==''&&c.lon!=null&&!isNaN(+c.lat)&&!isNaN(+c.lon);
 const osmUrl=c=>hasG(c)?`https://www.openstreetmap.org/?mlat=${+c.lat}&mlon=${+c.lon}#map=19/${+c.lat}/${+c.lon}`:'https://www.openstreetmap.org/search?query='+encodeURIComponent(c.adresse||'');
-const norm=c=>{c.parcelles=c.parcelles||[];c.annotations=c.annotations||[];c.taches=c.taches||[];c.journal=c.journal||[];c.details=c.details||{};c.photos=c.photos||[];c.ops=c.ops||[];if(c.module==='entretien')c.prestations=(c.prestations||[]).map(p=>(p.faits=p.faits||{},p.sem=p.sem||[],delete p.m,delete p.pu,p));c.ops.forEach(o=>{delete o.montant});return c};
+const norm=c=>{c.parcelles=c.parcelles||[];c.annotations=c.annotations||[];c.taches=c.taches||[];c.journal=c.journal||[];c.details=c.details||{};c.photos=c.photos||[];c.ops=c.ops||[];if(c.module==='entretien'&&c.contrat==null){const t=(c.details&&c.details.marche||'')+' '+(c.client||'');c.contrat=/CCBVL/i.test(t)?'CCBVL':''}
+if(c.module==='entretien')c.prestations=(c.prestations||[]).map(p=>(p.faits=p.faits||{},p.sem=p.sem||[],delete p.m,delete p.pu,p));c.ops.forEach(o=>{delete o.montant});return c};
 D.chantiers.forEach(norm);D.chantiers.forEach(c=>lastJ[c.id]=JSON.stringify(c));lastR=JSON.stringify(D.reglages);
 
 /* ---------- mesures ---------- */
@@ -111,7 +117,7 @@ function setBase(){if(!V||!V.map)return;if(V.base)V.map.removeLayer(V.base);V.ba
 function setCad(){if(!V||!V.map)return;if(V.cad){V.map.removeLayer(V.cad);V.cad=null}if(P.cad)V.cad=T.cad().addTo(V.map)}
 const dpx=()=>0;
 function boundsOf(list){const b=L.latLngBounds([]);list.forEach(c=>{c.parcelles.forEach(p=>{try{b.extend(L.geoJSON(p.geom).getBounds())}catch(e){}});c.annotations.forEach(a=>a.pts.forEach(x=>b.extend(x)));if(hasG(c))b.extend([+c.lat,+c.lon])});return b}
-function fit(){if(!V||!V.map)return;if(PZ){V.map.fitBounds(PZ,{paddingTopLeft:[24,24],paddingBottomRight:[104,24],maxZoom:19});PZ=null;return}const list=V.kind==='det'?[curC()]:D.chantiers.filter(c=>c.module===V.mod);let b=boundsOf(list);if(!b.isValid())b=boundsOf(D.chantiers.filter(hasG));
+function fit(){if(!V||!V.map)return;if(PZ){V.map.fitBounds(PZ,{paddingTopLeft:[24,24],paddingBottomRight:[104,24],maxZoom:19});PZ=null;return}const list=V.kind==='det'?[curC()]:D.chantiers.filter(c=>inMod(c,V.mod));let b=boundsOf(list);if(!b.isValid())b=boundsOf(D.chantiers.filter(hasG));
 const opt={paddingTopLeft:[24,24],paddingBottomRight:[104,30],maxZoom:18};
 if(!b.isValid())V.map.setView([46.6,2.4],6);else if(b.getNorthEast().equals(b.getSouthWest()))V.map.fitBounds(b.pad(.002),opt);else V.map.fitBounds(b,opt)}
 function annLayer(a){const col=a.couleur||'#d93025';let l;
@@ -122,7 +128,7 @@ if(a.type!=='note'&&a.texte)l.bindTooltip(esc(a.texte),{permanent:true,direction
 l.on('click',e=>{if(mode){onMapClick(e);return}L.popup().setLatLng(e.latlng).setContent(`<b>${esc(a.texte||{note:'Note',ligne:'Ligne',zone:'Zone'}[a.type])}</b>${annMeasure(a)?'<br>'+annMeasure(a):''}<br><button class="pbtn" data-act="delann" data-a="${esc(a.id)}">Supprimer</button>`).openOn(V.map)});
 return l}
 function drawOverlays(){if(!V||!V.map)return;if(V.over)V.over.remove();const g=L.layerGroup().addTo(V.map);V.over=g;const det=V.kind==='det';
-const list=det?[curC()]:D.chantiers.filter(c=>c.module===V.mod);
+const list=det?[curC()]:D.chantiers.filter(c=>inMod(c,V.mod));
 list.forEach(c=>{const col=COL[c.module];
 c.parcelles.forEach(p=>{const lay=L.geoJSON(p.geom,{style:{color:col,weight:3,fillColor:col,fillOpacity:.22},interactive:!det});
 if(det)lay.bindTooltip(esc(p.section+' '+p.numero),{permanent:true,direction:'center',className:'plab'});else lay.bindPopup(popupC(c));lay.addTo(g)});
@@ -166,20 +172,20 @@ function setDrawer(s){dS=s;const d=$('#drawer');if(d)d.dataset.s=s;document.body
 function card(c){const p=prog(c),n=c.taches.filter(t=>t.done).length,np=c.parcelles.length,pc=c.module==='entretien'?passCount(c,isoW(new Date()).y):null;
 return `<a class="card" href="#c-${esc(c.id)}" style="--mc:var(--${c.module})"><div class="ch"><span class="mod">${ICON[c.module]}${esc(lbl(c.module))}</span><span class="pill s-${c.statut}">${ST[c.statut]}</span></div><h3>${esc(c.titre)}</h3><p class="meta">${esc(c.client)}${c.adresse?' · '+esc(c.adresse):''}</p><div class="bar"><i style="width:${p}%"></i></div><div class="cf"><span>${p} % · ${pc?pc.d+'/'+pc.t+' passages':n+'/'+c.taches.length+' tâches'}${np?' · '+np+' parcelle'+(np>1?'s':''):''}</span><span>${pc?'':fd(c.debut)+' → '+fd(c.fin)}</span></div></a>`}
 function tile(k){const cs=D.chantiers.filter(c=>c.module===k),e=cs.filter(c=>c.statut==='en_cours').length;
-return `<a class="tile" href="#m-${k}" style="--mc:var(--${k})"><span class="ti">${ICON[k]}</span><span class="tn">${esc(lbl(k))}</span><span class="tc">${e} en cours · ${cs.length} au total</span></a>`}
+return `<a class="tile" href="#m-${k}" style="--mc:var(--${k})"><span class="ti">${ICON[k]}</span><span class="tn">${esc(lbl(k))}</span><span class="tc">${k==='entretien'?contrats().length+' contrat'+(contrats().length>1?'s':'')+' annuel'+(contrats().length>1?'s':'')+' · '+cs.length+' site'+(cs.length>1?'s':''):e+' en cours · '+cs.length+' au total'}</span></a>`}
 function vHome(){const all=D.chantiers.filter(c=>c.module!=='entretien'),enc=all.filter(c=>c.statut==='en_cours').sort(sorter),av=all.filter(c=>c.statut==='prevu'),m=iso().slice(0,7);
 const hm=all.reduce((s,c)=>s+c.journal.filter(j=>String(j.date).startsWith(m)).reduce((a,j)=>a+(+j.heures||0),0),0);
 return `<header class="hero"><div class="hero-in"><div class="toprow"><div><p class="date">${fdl(iso())}</p><h1>${esc(D.reglages.entreprise)}</h1></div><button class="ibtn" data-act="settings" aria-label="Réglages">${ICON.set}</button></div>
 <div class="kpis"><div><b>${enc.length}</b><span>en cours</span></div><div><b>${av.length}</b><span>à venir</span></div><div><b>${fmtH(hm)}</b><span>ce mois-ci</span></div></div></div>${HILLS}</header>
-<main class="wrap"><div class="tiles">${KEYS.map(tile).join('')}</div><a class="calbtn" href="#cal">${ICON.cal}<span><b>Calendrier</b><small>Tous les chantiers semaine par semaine</small></span><span class="go">›</span></a>
+<main class="wrap"><div class="tiles t1">${tile('entretien')}</div><div class="hctr"><span>Contrats annuels :</span>${contrats().map(k=>{const n=D.chantiers.filter(c=>c.module==='entretien'&&c.contrat===k).length;return `<button class="chip" data-act="goctr" data-v="${esc(k)}">${esc(k)} · ${n} site${n>1?'s':''}</button>`}).join('')}</div><h2 class="sec">Autres chantiers</h2><div class="tiles t4">${KEYS.filter(k=>k!=='entretien').map(tile).join('')}</div><a class="calbtn" href="#cal">${ICON.cal}<span><b>Calendrier</b><small>Tous les chantiers semaine par semaine</small></span><span class="go">›</span></a>
 ${homeEnt()}<div class="hgrid"><section class="hmap"><h2 class="sec">Carte des chantiers</h2><div class="homemap" id="homemap"></div><p class="attr" style="margin-top:6px">Chantiers en cours, à venir et en pause · © OpenStreetMap</p></section>
 <section class="hlist"><h2 class="sec">Chantiers en cours</h2>${enc.length?`<div class="list">${enc.map(card).join('')}</div>`:'<p class="empty">Aucun chantier en cours.</p>'}</section></div>
 ${D.exemples?'<p class="note">Les chantiers affichés sont des exemples. <button class="link" data-act="clear-ex">Les effacer</button></p>':''}</main>`}
-function weekRows(y,w){return D.chantiers.filter(c=>c.module==='entretien').map(c=>({c,ps:c.prestations.filter(p=>p.sem.includes(w))})).filter(r=>r.ps.length)}
-function homeEnt(){if(!D.chantiers.some(c=>c.module==='entretien'))return '';const {y,w}=isoW(new Date()),rows=weekRows(y,w),t=rows.reduce((s,r)=>s+r.ps.length,0),d=rows.reduce((s,r)=>s+r.ps.filter(p=>p.faits[y+'-'+w]).length,0);
+function weekRows(y,w,all){return D.chantiers.filter(c=>all?c.module==='entretien':inMod(c,'entretien')).map(c=>({c,ps:c.prestations.filter(p=>p.sem.includes(w))})).filter(r=>r.ps.length)}
+function homeEnt(){if(!D.chantiers.some(c=>c.module==='entretien'))return '';const {y,w}=isoW(new Date()),rows=weekRows(y,w,true),t=rows.reduce((s,r)=>s+r.ps.length,0),d=rows.reduce((s,r)=>s+r.ps.filter(p=>p.faits[y+'-'+w]).length,0);
 return `<a class="card" href="#m-entretien" style="--mc:var(--entretien);margin-top:14px"><div class="ch"><span class="mod">${ICON.entretien}Entretien · semaine ${w}</span><span class="pill ${t&&d===t?'s-termine':'s-en_cours'}">${t?d+'/'+t+' faits':'Rien de prévu'}</span></div><h3>${t?t+' passage'+(t>1?'s':'')+' sur '+rows.length+' site'+(rows.length>1?'s':''):'Aucun passage cette semaine'}</h3><p class="meta">${esc(wLbl(y,w))} · ouvrir le planning${(()=>{const n=D.chantiers.reduce((s,c)=>s+(c.ops||[]).filter(o=>o.statut!=='fait').length,0);return n?' · '+n+' opération'+(n>1?'s':'')+' spéciale'+(n>1?'s':'')+' à faire':''})()}</p></a>`}
 function nextWith(o){let x=o;for(let i=0;i<60;i++){x=wStep(x,1);if(weekRows(x.y,x.w).length)return x}return null}
-function dPlan(){const {y,w}=PW,rows=weekRows(y,w),all=new Set();D.chantiers.filter(c=>c.module==='entretien').forEach(c=>c.prestations.forEach(p=>p.sem.forEach(s=>all.add(s))));
+function dPlan(){const {y,w}=PW,rows=weekRows(y,w),all=new Set();D.chantiers.filter(c=>inMod(c,'entretien')).forEach(c=>c.prestations.forEach(p=>p.sem.forEach(s=>all.add(s))));
 const ws=[...all].sort((a,b)=>a-b),lo=ws.length?Math.min(ws[0],w):w,hi=ws.length?Math.max(ws[ws.length-1],w):w,strip=[];
 for(let s=lo;s<=hi;s++){const r=weekRows(y,s),t=r.reduce((a,x)=>a+x.ps.length,0),d=r.reduce((a,x)=>a+x.ps.filter(p=>p.faits[y+'-'+s]).length,0);strip.push(`<button class="wc ${s===w?'on':''} ${t&&d===t?'done':''}" data-act="pw" data-y="${y}" data-w="${s}" ${s===w?'id="wcur"':''}>S${s}<small>${t?d+'/'+t:'—'}</small></button>`)}
 const t=rows.reduce((s,r)=>s+r.ps.length,0),d=rows.reduce((s,r)=>s+r.ps.filter(p=>p.faits[y+'-'+w]).length,0),j=rows.reduce((s,r)=>s+r.ps.reduce((a,p)=>a+(+p.delai||0),0),0),nx=t?null:nextWith(PW);
@@ -191,7 +197,7 @@ return `<section class="panel"><h2>Prestations d’entretien <small>${y}</small>
 return `<li><div class="prh"><b>${p.n?esc(p.n)+'. ':''}${esc(L[0])}</b>${p.hea?'<span class="pill s-pause">Hors entretien annuel</span>':''}</div><span class="meta">${p.q!=null&&p.q!==''?esc(String(p.q).replace('.',','))+' '+esc(p.u||'')+' · ':''}${p.sem.length} passage${p.sem.length>1?'s':''}${p.delai?' · '+fmtJ(p.delai)+' par passage':''}</span>${rest?`<details><summary>Détails</summary><p class="notes">${esc(rest)}</p></details>`:''}
 <div class="wks">${p.sem.map(s=>{const f=p.faits[y+'-'+s];return `<button class="wk ${f?'ok':s<w?'late':s===w?'now':''}" data-act="pas" data-c="${esc(c.id)}" data-p="${esc(p.id)}" data-y="${y}" data-w="${s}" aria-pressed="${!!f}">S${s}${f?' ✓':''}</button>`}).join('')}<button class="wk x2" data-act="delpr" data-p="${esc(p.id)}" aria-label="Supprimer la prestation">×</button></div></li>`}).join('')}</ul><p class="tot">${pc.d}/${pc.t} passages faits en ${y}</p>`:'<p class="hint">Aucune prestation pour ce site.</p>'}
 <form class="addt" data-form="prest" style="flex-wrap:wrap"><input name="des" placeholder="Nouvelle prestation (ex. tonte)" aria-label="Prestation" required style="flex:1 1 100%"><input name="sem" placeholder="Semaines : 30, 39" aria-label="Semaines" required style="flex:1"><input name="delai" placeholder="Jours" inputmode="decimal" aria-label="Durée par passage en jours" style="width:80px;flex:none"><button>Ajouter</button></form></section>`}
-function listHTML(k){const s=q.toLowerCase();const cs=D.chantiers.filter(c=>c.module===k&&(filt==='tous'||c.statut===filt)&&(!s||(c.titre+' '+c.client+' '+c.adresse+' '+c.equipe).toLowerCase().includes(s))).sort(sorter);
+function listHTML(k){const s=q.toLowerCase();const cs=D.chantiers.filter(c=>inMod(c,k)&&(filt==='tous'||c.statut===filt)&&(!s||(c.titre+' '+c.client+' '+c.adresse+' '+c.equipe).toLowerCase().includes(s))).sort(sorter);
 return cs.length?`<div class="list">${cs.map(card).join('')}</div>`:'<p class="empty">Aucun chantier ici. Touchez « Nouveau » pour en créer un.</p>'}
 const TI={fiche:sv('<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>'),
 carte:sv('<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'),
@@ -206,18 +212,20 @@ return mod==='entretien'?[t('prest','Passages'),t('carte','Carte'),t('photos','P
 const wide=()=>innerWidth>=1100;let WIDE=wide();
 let CUR={},PZ=null,PMODE=null,LASTKEY=null,OF='ouv';
 const goTab=t=>{location.hash=(CUR.kind==='det'?'c-'+CUR.c.id:'m-'+CUR.mod)+'--'+t};
+function ctrBar(){const L=contrats();if(CTR&&!L.includes(CTR))setCtr('');const n=k=>D.chantiers.filter(c=>c.module==='entretien'&&(!k||c.contrat===k)).length;
+return `<p class="ctl">Contrats annuels</p><div class="ctabs" role="tablist" aria-label="Contrats annuels">${['',...L].map(k=>`<button class="ctab ${CTR===k?'on':''}" data-act="ctr" data-v="${esc(k)}" role="tab" aria-selected="${CTR===k}">${k?esc(k):'Tous'}<small>${n(k)} site${n(k)>1?'s':''}</small></button>`).join('')}<button class="ctab add" data-act="ctradd">${ICON.plus}Contrat</button></div>`}
 function frame(kind,mod,c,tabs,tab){let sub='';
-if(kind==='mod'){const cs=D.chantiers.filter(x=>x.module===mod);if(mod==='entretien'){const pc=cs.reduce((a,x)=>{const k=passCount(x,PW.y);return{t:a.t+k.t,d:a.d+k.d}},{t:0,d:0});sub=`${cs.length} site${cs.length>1?'s':''} · ${pc.d}/${pc.t} passages faits en ${PW.y}`}else sub=`${cs.length} chantier${cs.length>1?'s':''} · ${cs.filter(x=>x.statut==='en_cours').length} en cours`}
-else sub=c.adresse||c.client||'';
+if(kind==='mod'){const cs=D.chantiers.filter(x=>inMod(x,mod));if(mod==='entretien'){const pc=cs.reduce((a,x)=>{const k=passCount(x,PW.y);return{t:a.t+k.t,d:a.d+k.d}},{t:0,d:0});sub=`${cs.length} site${cs.length>1?'s':''} · ${pc.d}/${pc.t} passages faits en ${PW.y}`}else sub=`${cs.length} chantier${cs.length>1?'s':''} · ${cs.filter(x=>x.statut==='en_cours').length} en cours`}
+else sub=[c.module==='entretien'&&c.contrat?'Contrat '+c.contrat:'',c.adresse||c.client||''].filter(Boolean).join(' · ');
 const base=kind==='det'?'c-'+c.id:'m-'+mod;
 return `<div class="vtop" style="--mc:var(--${mod})"><header class="vh"><a class="vback" href="${kind==='det'?'#m-'+mod+(mod==='entretien'?'--liste':''):'#'}">${ICON.back}${kind==='det'?esc(lbl(mod)):'Accueil'}</a>
 <div class="vt"><span class="vic">${ICON[mod]}</span><div><h1>${esc(c?c.titre:lbl(mod))}</h1><p>${esc(sub)}</p></div>${kind==='mod'?`<button class="vnew" data-act="new" data-m="${mod}">${ICON.plus}${mod==='entretien'?'Site':'Nouveau'}</button>`:''}</div></header>
-<nav class="vtabs" role="tablist">${tabs.map(x=>`<a role="tab" class="vtab ${x.k===tab?'on':''}" href="#${esc(base)}--${x.k}" aria-selected="${x.k===tab}">${x.i}<span>${x.l}</span></a>`).join('')}</nav></div>`}
-function mapShell(det,mod){return `<div class="mapfull" id="mapfull" style="--mc:var(--${mod})"><div id="mapbg" class="mapbg">${window.L?'':'<p class="nomap">Carte indisponible : vérifiez la connexion internet.</p>'}</div>
+${kind==='mod'&&mod==='entretien'?ctrBar():''}<nav class="vtabs" role="tablist">${tabs.map(x=>`<a role="tab" class="vtab ${x.k===tab?'on':''}" href="#${esc(base)}--${x.k}" aria-selected="${x.k===tab}">${x.i}<span>${x.l}</span></a>`).join('')}</nav></div>`}
+function mapShell(det,mod,small){return `<div class="mapfull" id="mapfull" style="--mc:var(--${mod})">${small?`<a class="mapbig" href="#${CUR.kind==='det'?'c-'+esc(CUR.c.id):'m-'+mod}--carte">⤢ Agrandir la carte</a>`:''}<div id="mapbg" class="mapbg">${window.L?'':'<p class="nomap">Carte indisponible : vérifiez la connexion internet.</p>'}</div>
 <div class="tools"><button class="tool" data-act="base" id="tb-base">Photo</button><button class="tool" data-act="cad" id="tb-cad">Cadastre</button>
 ${det?'<span class="tsep"></span>'+[['parcelle','Parcelle'],['note','Note'],['ligne','Ligne'],['zone','Zone'],['pin','Placer']].map(([m,l])=>`<button class="tool" data-act="mode" data-v="${m}">${l}</button>`).join(''):''}
 <button class="tool" data-act="me">Me situer</button></div><div id="hint" class="hintbar" hidden></div><p class="mattr">© OpenStreetMap · Cadastre et photos © IGN</p></div>`}
-function placeMap(){const f=$('#mapfull'),t=$('.vtop');if(f&&t)f.style.top=Math.round(t.getBoundingClientRect().bottom)+'px';if(V&&V.map)V.map.invalidateSize()}
+function placeMap(){const f=$('#mapfull'),t=$('.vtop');if(f&&t){const sm=f.closest('.mapcol');(sm||f).style.top=Math.round(t.getBoundingClientRect().height+(sm?16:0))+'px';if(!sm)f.style.top=Math.round(t.getBoundingClientRect().bottom)+'px'}if(V&&V.map)V.map.invalidateSize()}
 const ATTR='<p class="attr">Fond de carte © contributeurs OpenStreetMap · Cadastre et photos aériennes © IGN</p>';
 function dList(k){return `<div style="display:grid;gap:10px"><input id="q" type="search" placeholder="Rechercher un chantier, un client…" value="${esc(q)}" aria-label="Rechercher"><div class="chips">${['tous',...Object.keys(ST)].map(s=>`<button class="chip ${filt===s?'on':''}" data-act="filt" data-v="${s}">${s==='tous'?'Tous':ST[s]}</button>`).join('')}</div></div><div id="lst">${listHTML(k)}</div>`}
 function row(l,v){return v?`<div><dt>${l}</dt><dd>${v}</dd></div>`:''}
@@ -237,7 +245,7 @@ ${(o.photos||[]).length?`<div class="phr">${o.photos.map(s=>phThumb(s,'zoom','da
 <div class="seg">${Object.keys(OST).map(k=>`<button class="${o.statut===k?'on':''}" data-act="opst" ${ids} data-v="${k}">${OST[k]}</button>`).join('')}</div>
 <div class="hb"><button class="btn sm" data-act="opedit" ${ids}>Modifier</button><button class="btn sm danger" data-act="opdel" ${ids}>Supprimer</button></div></article>`}
 function dOps(c){const os=[...c.ops].sort(opSort);return `<div><h2 class="sec" style="margin:0">Opérations spéciales</h2><p class="hint" style="margin:4px 0 0">Interventions hors planning : arbre tombé, nettoyage après tempête, demande du client…</p></div><button class="btn primary wide" data-act="opnew" data-c="${esc(c.id)}">${ICON.plus}Nouvelle opération spéciale</button>${os.length?os.map(o=>opCard(o,c,false)).join(''):'<p class="empty">Aucune opération spéciale pour le moment.</p>'}`}
-function dOpsMod(k){const all=D.chantiers.filter(c=>c.module===k).flatMap(c=>c.ops.map(o=>({o,c}))),ok=x=>OF==='tous'||(OF==='ouv'?x.o.statut!=='fait':x.o.statut==='fait'),f=all.filter(ok).sort((a,b)=>opSort(a.o,b.o));
+function dOpsMod(k){const all=D.chantiers.filter(c=>inMod(c,k)).flatMap(c=>c.ops.map(o=>({o,c}))),ok=x=>OF==='tous'||(OF==='ouv'?x.o.statut!=='fait':x.o.statut==='fait'),f=all.filter(ok).sort((a,b)=>opSort(a.o,b.o));
 return `<div class="chips">${[['ouv','À faire'],['fait','Faites'],['tous','Toutes']].map(([v,l])=>`<button class="chip ${OF===v?'on':''}" data-act="of" data-v="${v}">${l} (${all.filter(x=>v==='tous'||(v==='ouv'?x.o.statut!=='fait':x.o.statut==='fait')).length})</button>`).join('')}</div>${f.length?f.map(x=>opCard(x.o,x.c,true)).join(''):`<p class="empty">Aucune opération ici. Pour en créer une, ouvrez un ${k==='entretien'?'site':'chantier'} puis l’onglet Opérations.</p>`}`}
 function dFiche(c){const p=prog(c),h=hrs(c),hp=+c.heuresPrevues||0,n=c.taches.filter(t=>t.done).length,col=COL[c.module];
 const tel=c.tel?`${esc(c.tel)} · <a href="tel:${esc(c.tel.replace(/[^\d+]/g,''))}">Appeler</a>`:'';
@@ -283,7 +291,7 @@ if(x.n){inner+=`<span class="cn ${x.d===x.n?'ok':''}">${x.d===x.n?'✓':x.n}</sp
 if(x.op){inner+=`<span class="opm ${x.opd===x.op?'ok':''}" title="Opération spéciale">⚡${x.op>1?x.op:''}</span>`}
 const href=x.op&&!x.n&&!x.bar?'#c-'+esc(c.id)+'--ops':lk;
 return x.bar||x.n||x.op?`<a class="${cls.join(' ')}" href="${href}" style="--mc:var(--${c.module})" aria-label="${esc(c.titre)} semaine ${x.o.w}">${inner}</a>`:`<span class="${cls.join(' ')}"></span>`}).join('')}).join('')).join('');
-const ent=weekRows(now.y,now.w),cur=D.chantiers.filter(c=>c.module!=='entretien'&&c.statut!=='termine'&&(()=>{const a=dW(c.debut),b=dW(c.fin)||a;return a&&nk>=wKey(a)&&nk<=wKey(b)})());
+const ent=weekRows(now.y,now.w,true),cur=D.chantiers.filter(c=>c.module!=='entretien'&&c.statut!=='termine'&&(()=>{const a=dW(c.debut),b=dW(c.fin)||a;return a&&nk>=wKey(a)&&nk<=wKey(b)})());
 return `<div class="vtop" style="--mc:#1d3a2a"><header class="vh"><a class="vback" href="#">${ICON.back}Accueil</a><div class="vt"><span class="vic">${ICON.cal}</span><div><h1>Calendrier</h1><p>${esc(wLbl(ws[0].y,ws[0].w).split(' – ')[0])} → ${esc(wLbl(ws[N-1].y,ws[N-1].w).split(' – ')[1])}</p></div></div></header></div>
 <main class="wrap tabc calpage" style="--mc:#2f7a3a">
 <div class="calnav"><button class="btn" data-act="calnav" data-n="-4" aria-label="Semaines précédentes">‹ Avant</button><button class="btn primary" data-act="caltoday">Cette semaine</button><button class="btn" data-act="calnav" data-n="4" aria-label="Semaines suivantes">Après ›</button></div>
@@ -301,7 +309,7 @@ const tabs=tabsFor(kind,mod),tab=(tabs.find(x=>x.k===t0)||tabs[0]).k;CUR={kind,m
 const key=kind+':'+(c?c.id:mod)+':'+tab;
 const split=wide()&&tab!=='carte';document.body.classList.toggle('split',split);
 if(tab==='carte'||split){document.body.classList.toggle('mapview',tab==='carte');const main=()=>`<main class="wrap tabc" id="tabc" style="--mc:var(--${mod})">${content(kind,mod,c,tab)}${ATTR}</main>`;
-if(!V||V.key!==key){teardown();window.scrollTo(0,0);if(split&&kind==='mod'&&b0!==String(last).split('--')[0])q='';$('#root').innerHTML=frame(kind,mod,c,tabs,tab)+(split?`<div class="splitw">${main()}${mapShell(kind==='det',mod)}</div>`:mapShell(kind==='det',mod));mount(kind,mod,key);drawOverlays();updTools();fit();if(PMODE&&V.map){const pm=PMODE;PMODE=null;setMode(pm)}geoMissing(c?[c]:D.chantiers.filter(x=>x.module===mod))}
+if(!V||V.key!==key){teardown();window.scrollTo(0,0);if(split&&kind==='mod'&&b0!==String(last).split('--')[0])q='';$('#root').innerHTML=frame(kind,mod,c,tabs,tab)+(split?`<div class="splitw">${main()}<aside class="mapcol">${mapShell(kind==='det',mod,true)}</aside></div>`:mapShell(kind==='det',mod));mount(kind,mod,key);drawOverlays();updTools();fit();if(PMODE&&V.map){const pm=PMODE;PMODE=null;setMode(pm)}geoMissing(c?[c]:D.chantiers.filter(x=>x.module===mod))}
 else{$('.vtop').outerHTML=frame(kind,mod,c,tabs,tab);if(split)$('#tabc').outerHTML=main();placeMap();drawOverlays();updTools()}
 if(split){loadPhotos();const wc=$('#wcur');if(wc){const st=wc.parentElement;st.scrollLeft=wc.offsetLeft-st.offsetLeft-st.clientWidth/2+wc.clientWidth/2}}
 LASTKEY=key;last=h;return}
@@ -323,7 +331,7 @@ return `<form class="sh-in" data-form="chantier"><div class="sh-h"><h2>${c?'Modi
 ${inp('titre','Nom du chantier',e.titre,'text',1)}${inp('client','Client',e.client)}${inp('adresse','Adresse (placée automatiquement sur la carte)',e.adresse)}${inp('tel','Téléphone',e.tel,'tel')}
 <div class="two">${inp('debut','Début',e.debut,'date')}${inp('fin','Fin prévue',e.fin,'date')}</div>
 <div class="two">${inp('heuresPrevues','Heures prévues',e.heuresPrevues,'number')}${inp('equipe','Équipe',e.equipe)}</div>
-<fieldset><legend>${esc(lbl(e.module))}</legend>${FIELDS[e.module].map(f=>field(f,(e.details||{})[f.k])).join('')}</fieldset>
+${e.module==='entretien'?`<label class="f"><span>Contrat annuel</span><select name="contrat"><option value="">Sans contrat</option>${contrats().map(k=>`<option ${(c?e.contrat:CTR)===k?'selected':''}>${esc(k)}</option>`).join('')}</select></label>`:''}<fieldset><legend>${esc(lbl(e.module))}</legend>${FIELDS[e.module].map(f=>field(f,(e.details||{})[f.k])).join('')}</fieldset>
 <label class="f"><span>Notes (accès, consignes…)</span><textarea name="notes" rows="3">${esc(e.notes)}</textarea></label>
 ${c?'':'<p class="hint">Une liste de tâches type est ajoutée. Vous sélectionnerez ensuite les parcelles sur la carte.</p>'}
 <button class="btn primary wide">Enregistrer</button></form>`}
@@ -348,7 +356,7 @@ return `<form class="sh-in" data-form="journal"><div class="sh-h"><h2>Entrée du
 <label class="f"><span>Photos</span><input type="file" name="ph" accept="image/*" multiple></label>
 <button class="btn primary wide">Ajouter au journal</button></form>`}
 function fSettings(){return `<form class="sh-in" data-form="settings"><div class="sh-h"><h2>Réglages</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div>
-${inp('entreprise','Nom de l’entreprise',D.reglages.entreprise)}<fieldset><legend>Noms des modules</legend>${KEYS.map((k,i)=>inp('l_'+k,'Module '+(i+1),lbl(k))).join('')}</fieldset>
+${inp('entreprise','Nom de l’entreprise',D.reglages.entreprise)}<fieldset><legend>Contrats annuels d’entretien</legend>${contrats().map((k,i)=>inp('ct_'+i,'Contrat '+(i+1)+' (videz pour le supprimer)',k)).join('')}${inp('ct_new','Ajouter un contrat','')}</fieldset><fieldset><legend>Noms des modules</legend>${KEYS.map((k,i)=>inp('l_'+k,'Module '+(i+1),lbl(k))).join('')}</fieldset>
 <button class="btn primary wide">Enregistrer</button>
 ${FB?(cloud&&cloud.user?`<p class="hint">Connecté : ${esc(cloud.user.email)}. Les chantiers sont partagés en temps réel avec toute l’équipe.</p><button type="button" class="btn" data-act="logout">Se déconnecter</button>`:'<p class="hint">Serveur injoignable pour le moment : les modifications seront envoyées dès le retour de la connexion.</p>'):'<p class="hint">Mode local : les données sont enregistrées sur ce téléphone uniquement.</p><button type="button" class="btn" data-act="fb-setup">Activer le partage d’équipe</button>'}${FB_LOCAL?'<p class="hint">Partage activé sur ce téléphone seulement. Pour que tous les téléphones soient reliés automatiquement, copiez le fichier config.js et envoyez-le sur GitHub.</p><div class="two"><button type="button" class="btn" data-act="fb-copy">Copier config.js</button><button type="button" class="btn danger" data-act="fb-off">Désactiver</button></div>':''}
 <div class="two"><button type="button" class="btn" data-act="dl">Télécharger la sauvegarde</button><button type="button" class="btn" data-act="imp">Importer…</button></div></form>`}
@@ -450,6 +458,9 @@ case 'opedit':{const s0=find(b.dataset.c),o=s0&&s0.ops.find(x=>x.id===b.dataset.
 case 'opdel':ask2('Supprimer cette opération ?',()=>{const s0=find(b.dataset.c);if(!s0)return;const o=s0.ops.find(x=>x.id===b.dataset.o);if(o)delPhotos(o.photos);s0.ops=s0.ops.filter(x=>x.id!==b.dataset.o);save();render()});break;
 case 'opst':{const s0=find(b.dataset.c),o=s0&&s0.ops.find(x=>x.id===b.dataset.o);if(o){o.statut=b.dataset.v;if(o.statut==='fait'&&!o.fait)o.fait=iso();save();render()}break}
 case 'of':OF=b.dataset.v;render();break;
+case 'ctr':setCtr(b.dataset.v);teardown();LASTKEY=null;render();break;
+case 'goctr':setCtr(b.dataset.v);if(location.hash==='#m-entretien'){teardown();LASTKEY=null;render()}else location.hash='m-entretien';break;
+case 'ctradd':openSheet(`<form class="sh-in" data-form="ctr"><div class="sh-h"><h2>Nouveau contrat annuel</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div>${inp('nom','Nom du contrat (ex. CCI, Mairie de Mer)','','text',1)}<p class="hint">Ses sites d’entretien seront regroupés dans un sous-onglet.</p><button class="btn primary wide">Créer le contrat</button></form>`);break;
 case 'calnav':CW=wStep(CW||isoW(new Date()),+b.dataset.n);render();break;
 case 'caltoday':CW=wStep(isoW(new Date()),-1);render();break;
 case 'close':closeSheet();break;
@@ -469,9 +480,11 @@ else if(t==='phleg'&&c){const p=c.photos.find(x=>x.id===v.id);if(p)p.legende=Str
 else if(t==='op'){const s0=find(v.c);if(!s0)return;const btn=f.querySelector('.primary');btn.disabled=true;btn.textContent='Enregistrement…';const np=[];for(const file of f.querySelector('input[type=file]').files){try{np.push(await storePhoto(file,s0))}catch(err){toast('Une photo n’a pas pu être ajoutée')}}
 const base={titre:String(v.titre).trim(),date:v.date,statut:v.statut,desc:String(v.desc||'').trim(),heures:v.heures===''?'':+String(v.heures).replace(',','.')};
 const s1=find(v.c)||s0;let o=v.o&&s1.ops.find(x=>x.id===v.o);if(o){Object.assign(o,base);o.photos=[...(o.photos||[]),...np]}else s1.ops.push(Object.assign({id:uid(),par:cloud&&cloud.user?cloud.user.email:'',cree:iso(),photos:np},base));closeSheet();save();render();toast('Opération enregistrée')}
+else if(t==='ctr'){const nm=String(v.nom||'').trim();if(!nm)return;const L=contrats();if(!L.includes(nm))L.push(nm);D.reglages.contrats=L;setCtr(nm);closeSheet();save();teardown();LASTKEY=null;render();toast('Contrat « '+nm+' » créé')}
 else if(t==='task'){const s=String(v.t||'').trim();if(s&&c){c.taches.push({t:s,done:false});const m=auto(c);save();render();if(m)toast(m)}}
 else if(t==='chantier'){const det={};FIELDS[v.module].forEach(x=>det[x.k]=String(v['d_'+x.k]||'').trim());
 const base={titre:v.titre.trim(),client:v.client.trim(),adresse:v.adresse.trim(),tel:v.tel.trim(),debut:v.debut,fin:v.fin,heuresPrevues:v.heuresPrevues===''?'':+v.heuresPrevues,equipe:v.equipe.trim(),notes:v.notes.trim(),details:det};
+if(v.module==='entretien')base.contrat=String(v.contrat||'');
 let o=v.id&&find(v.id);const adrChanged=!o||o.adresse!==base.adresse;
 if(o)Object.assign(o,base);else{o=norm(Object.assign({id:uid(),module:v.module,statut:v.debut&&v.debut<=iso()?'en_cours':'prevu',taches:TPL[v.module].map(x=>({t:x,done:false})),journal:[]},base));D.chantiers.push(o)}
 closeSheet();save();location.hash='c-'+o.id;render();toast('Chantier enregistré');
@@ -482,7 +495,7 @@ const photos=[];for(const file of f.querySelector('input[type=file]').files){try
 try{localStorage.setItem(LS+'-auteur',v.auteur)}catch(err){}
 const cj=find(c.id)||c;cj.journal.push({id:uid(),date:v.date,auteur:v.auteur.trim(),heures:+v.heures||0,note:v.note.trim(),photos});
 if(cj.statut==='prevu')cj.statut='en_cours';closeSheet();save();render();toast('Ajouté au journal')}
-else if(t==='settings'){D.reglages.entreprise=v.entreprise.trim()||'Mon entreprise';KEYS.forEach(k=>D.reglages.modules[k]=String(v['l_'+k]||'').trim()||lbl(k));closeSheet();save();render()}
+else if(t==='settings'){const L0=contrats(),L=[];L0.forEach((k,i)=>{const nv=String(v['ct_'+i]??k).trim();if(nv){if(!L.includes(nv))L.push(nv);if(nv!==k)D.chantiers.forEach(c=>{if(c.module==='entretien'&&c.contrat===k)c.contrat=nv})}else D.chantiers.forEach(c=>{if(c.module==='entretien'&&c.contrat===k)c.contrat=''})});const nn=String(v.ct_new||'').trim();if(nn&&!L.includes(nn))L.push(nn);D.reglages.contrats=L;if(CTR&&!L.includes(CTR))setCtr('');D.reglages.entreprise=v.entreprise.trim()||'Mon entreprise';KEYS.forEach(k=>D.reglages.modules[k]=String(v['l_'+k]||'').trim()||lbl(k));closeSheet();save();render()}
 else if(t==='import'){try{const o=JSON.parse(await v.file.text());if(!o||!Array.isArray(o.chantiers)||!o.reglages)throw 0;ask('Remplacer toutes les données par cette sauvegarde ?',()=>{o.chantiers.forEach(norm);D=o;save();teardown();render()})}catch(err){toast('Sauvegarde illisible')}}});
 
 window.addEventListener('hashchange',()=>{closeSheet();render()});
