@@ -61,6 +61,18 @@ Dans `app.js`, en haut du fichier :
 - Cadastre (Parcellaire Express) et photos aériennes : © IGN Géoplateforme (data.geopf.fr).
 - Sélection des parcelles : API Carto Cadastre de l'IGN.
 
+## Structure
+
+L'**Entretien** est la base de l'app : il est en premier sur l'accueil. À l'intérieur, chaque **contrat annuel** (CCBVL, CCI…) a son sous-onglet ; « Tous » regroupe l'ensemble des contrats. Les autres modules (Chantier François, Élagage, Plantation, Broyage) sont regroupés sous « Autres chantiers ».
+
+- Chaque site d'entretien a un champ `contrat`, par exemple `"CCBVL"`.
+- La liste des contrats est dans `app/reglages` (`contrats: ["CCBVL","CCI"]`).
+- Pour ajouter un contrat : bouton « + Contrat » dans l'Entretien. Pour renommer ou supprimer un contrat : Réglages.
+
+## Contrat VILLE DE MER
+
+Le fichier `ajout-entretien-VILLE-DE-MER.json` (à garder hors de GitHub) contient 11 sites et 31 prestations, tirés du DPGF et du CCTP du marché 2026-C3D-019. C'est un fichier d'**ajout** (`"fusion": true`) : Réglages › Importer ajoute ses sites sans effacer les autres contrats.
+
 ## Module Entretien
 
 Chaque site d'entretien a une liste de prestations. Pour chacune, l'app garde la désignation, la quantité, l'unité, la durée d'un passage et les **semaines ISO** où elle est prévue. L'app n'affiche et n'enregistre aucun prix. Le planning revient tous les ans : les passages faits sont enregistrés par année et par semaine (`faits["2026-30"]`).
