@@ -352,7 +352,12 @@ ${inp('entreprise','Nom de l’entreprise',D.reglages.entreprise)}<fieldset><leg
 <button class="btn primary wide">Enregistrer</button>
 ${FB?(cloud&&cloud.user?`<p class="hint">Connecté : ${esc(cloud.user.email)}. Les chantiers sont partagés en temps réel avec toute l’équipe.</p><button type="button" class="btn" data-act="logout">Se déconnecter</button>`:'<p class="hint">Serveur injoignable pour le moment : les modifications seront envoyées dès le retour de la connexion.</p>'):'<p class="hint">Mode local : les données sont enregistrées sur ce téléphone uniquement.</p><button type="button" class="btn" data-act="fb-setup">Activer le partage d’équipe</button>'}${FB_LOCAL?'<p class="hint">Partage activé sur ce téléphone seulement. Pour que tous les téléphones soient reliés automatiquement, copiez le fichier config.js et envoyez-le sur GitHub.</p><div class="two"><button type="button" class="btn" data-act="fb-copy">Copier config.js</button><button type="button" class="btn danger" data-act="fb-off">Désactiver</button></div>':''}
 <div class="two"><button type="button" class="btn" data-act="dl">Télécharger la sauvegarde</button><button type="button" class="btn" data-act="imp">Importer…</button></div></form>`}
-function finish(c){c=find(c.id)||c;c.statut='termine';if(!c.fin)c.fin=iso();save();render();toast('Chantier terminé ✓')}
+/* ---------- passage automatique en « Terminé » à 100 % ---------- */
+const workOf=c=>{if(c.module==='entretien'){const k=passCount(c,isoW(new Date()).y);return{has:k.t>0,pct:k.t?Math.round(k.d*100/k.t):0}}const n=c.taches.length;return{has:n>0,pct:n?Math.round(c.taches.filter(t=>t.done).length*100/n):0}};
+function auto(c){c=find(c.id)||c;const w=workOf(c);
+if(w.has&&w.pct===100&&c.statut!=='termine'){c.statut='termine';c.autoFin=true;if(!c.fin)c.fin=iso();return '✓ « '+c.titre+' » est terminé (100 %)'}
+if(c.statut==='termine'&&c.autoFin&&w.pct<100){c.statut='en_cours';c.autoFin=false;return '« '+c.titre+' » repasse en cours'}return ''}
+function finish(c){c=find(c.id)||c;c.statut='termine';c.autoFin=false;if(!c.fin)c.fin=iso();save();render();toast('Chantier terminé ✓')}
 function ask(msg,fn){openSheet(`<div class="sh-in"><p class="ask">${esc(msg)}</p><div class="two"><button class="btn" data-act="close">Annuler</button><button class="btn danger-fill" data-act="ok">Confirmer</button></div></div>`);pending=fn}
 function openSheet(h){closeSheet();const d=document.createElement('div');d.id='sheet';d.innerHTML=`<div class="scrim" data-act="close"></div><div class="sh" role="dialog" aria-modal="true">${h}</div>`;document.body.appendChild(d);document.body.classList.add('lock')}
 function closeSheet(){const s=$('#sheet');if(s)s.remove();document.body.classList.remove('lock')}
@@ -405,9 +410,9 @@ case 'settings':openSheet(fSettings());break;
 case 'filt':filt=b.dataset.v;render();break;
 case 'new':openSheet(fChantier(null,b.dataset.m));break;
 case 'edit':openSheet(fChantier(c));break;
-case 'status':if(b.dataset.v==='termine'){finish(c);break}c.statut=b.dataset.v;save();render();break;
-case 'task':c.taches[+b.dataset.i].done=b.checked;save();render();if(b.checked&&c.statut!=='termine'&&c.taches.length&&c.taches.every(t=>t.done))ask2(`Toutes les tâches sont faites (100 %). Marquer « ${c.titre} » comme terminé ?`,()=>finish(c));break;
-case 'deltask':c.taches.splice(+b.dataset.i,1);save();render();break;
+case 'status':if(b.dataset.v==='termine'){finish(c);break}c.statut=b.dataset.v;c.autoFin=false;save();render();break;
+case 'task':{c.taches[+b.dataset.i].done=b.checked;const m=auto(c);save();render();if(m)toast(m);break}
+case 'deltask':{c.taches.splice(+b.dataset.i,1);const m=auto(c);save();render();if(m)toast(m);break}
 case 'journal':openSheet(fJournal());break;
 case 'zoom':openSheet(`<div class="sh-in"><div class="sh-h"><h2>Photo</h2><button class="ibtn" data-act="close" aria-label="Fermer">×</button></div><img class="zoom" src="${esc(phSrc(b.dataset.src))}" alt="Photo du chantier"></div>`);break;
 case 'delj':ask2('Supprimer cette entrée du journal ?',()=>{const j0=c.journal.find(j=>j.id===b.dataset.j);delPhotos(j0&&j0.photos);c.journal=c.journal.filter(j=>j.id!==b.dataset.j);save();render()});break;
@@ -422,7 +427,7 @@ case 'mode':if(V&&V.map)setMode(b.dataset.v);else{PMODE=b.dataset.v;goTab('carte
 case 'et':ET=b.dataset.v;render();break;
 case 'pw':PW={y:+b.dataset.y,w:+b.dataset.w};render();break;
 case 'pwstep':PW=wStep(PW,+b.dataset.n);render();break;
-case 'pas':{const s=find(b.dataset.c),p=s&&s.prestations.find(x=>x.id===b.dataset.p);if(!p)break;const k=b.dataset.y+'-'+b.dataset.w;if(p.faits[k])delete p.faits[k];else p.faits[k]={le:iso(),par:cloud&&cloud.user?cloud.user.email:''};save();render();break}
+case 'pas':{const s=find(b.dataset.c),p=s&&s.prestations.find(x=>x.id===b.dataset.p);if(!p)break;const k=b.dataset.y+'-'+b.dataset.w;if(p.faits[k])delete p.faits[k];else p.faits[k]={le:iso(),par:cloud&&cloud.user?cloud.user.email:''};const m=auto(s);save();render();if(m)toast(m);break}
 case 'delpr':ask2('Supprimer cette prestation du site ?',()=>{c.prestations=c.prestations.filter(x=>x.id!==b.dataset.p);save();render()});break;
 case 'mode-off':setMode(null);break;
 case 'undo-pt':if(tmp){tmp.pts.pop();drawTmp();updTools()}break;
@@ -464,7 +469,7 @@ else if(t==='phleg'&&c){const p=c.photos.find(x=>x.id===v.id);if(p)p.legende=Str
 else if(t==='op'){const s0=find(v.c);if(!s0)return;const btn=f.querySelector('.primary');btn.disabled=true;btn.textContent='Enregistrement…';const np=[];for(const file of f.querySelector('input[type=file]').files){try{np.push(await storePhoto(file,s0))}catch(err){toast('Une photo n’a pas pu être ajoutée')}}
 const base={titre:String(v.titre).trim(),date:v.date,statut:v.statut,desc:String(v.desc||'').trim(),heures:v.heures===''?'':+String(v.heures).replace(',','.')};
 const s1=find(v.c)||s0;let o=v.o&&s1.ops.find(x=>x.id===v.o);if(o){Object.assign(o,base);o.photos=[...(o.photos||[]),...np]}else s1.ops.push(Object.assign({id:uid(),par:cloud&&cloud.user?cloud.user.email:'',cree:iso(),photos:np},base));closeSheet();save();render();toast('Opération enregistrée')}
-else if(t==='task'){const s=String(v.t||'').trim();if(s&&c){c.taches.push({t:s,done:false});save();render()}}
+else if(t==='task'){const s=String(v.t||'').trim();if(s&&c){c.taches.push({t:s,done:false});const m=auto(c);save();render();if(m)toast(m)}}
 else if(t==='chantier'){const det={};FIELDS[v.module].forEach(x=>det[x.k]=String(v['d_'+x.k]||'').trim());
 const base={titre:v.titre.trim(),client:v.client.trim(),adresse:v.adresse.trim(),tel:v.tel.trim(),debut:v.debut,fin:v.fin,heuresPrevues:v.heuresPrevues===''?'':+v.heuresPrevues,equipe:v.equipe.trim(),notes:v.notes.trim(),details:det};
 let o=v.id&&find(v.id);const adrChanged=!o||o.adresse!==base.adresse;

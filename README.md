@@ -9,7 +9,7 @@ La même adresse sert aux deux. Sur un écran large (1 100 px et plus), l'app pa
 ## Calendrier et fin de chantier
 
 - **Calendrier** (bouton sur l'accueil, adresse `#cal`) : les chantiers en lignes et les semaines en colonnes. Une barre colorée va du début à la fin prévue du chantier. Un nombre indique les passages d'entretien de la semaine (✓ quand ils sont tous faits). ⚡ signale une opération spéciale.
-- **Terminé** : quand toutes les tâches d'un chantier sont cochées, l'app propose de le marquer comme terminé. La date de fin est alors remplie automatiquement.
+- **Terminé automatique** : dès que 100 % du travail est fait (toutes les tâches cochées, ou tous les passages de l'année pour un site d'entretien), le chantier passe tout seul en « Terminé », avec la date du jour comme date de fin. Si on décoche ensuite une tâche, il repasse « En cours ». Un statut choisi à la main reste prioritaire.
 
 ## Fichiers
 
