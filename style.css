@@ -5,7 +5,7 @@
    PICTURE: bandeau vert forêt avec collines et arbres ; chaque module a son champ de couleur
    COLOUR and TYPE: vert forêt dominant, couleurs métier (ardoise, écorce, feuille, copeau) ; Barlow Condensed + Barlow
    LAYOUT: application mobile une colonne, cartes empilées, feuilles qui montent du bas pour les formulaires */
-:root{color-scheme:light dark;--bg:light-dark(#eef2ea,#0e1611);--ink:light-dark(#14231a,#e6eee4);--card:light-dark(#fff,#17231b);--line:light-dark(#dbe3d6,#2a3a2f);--muted:light-dark(#56655b,#9eb0a2);--forest:light-dark(#1d3a2a,#0b1a11);--francois:#2c6694;--elagage:#7d4f24;--plantation:#2f7a3a;--broyage:#9a5f08;--danger:#b3261e;--ok:#2f7a3a}
+:root{color-scheme:light dark;--bg:light-dark(#eef2ea,#0e1611);--ink:light-dark(#14231a,#e6eee4);--card:light-dark(#fff,#17231b);--line:light-dark(#dbe3d6,#2a3a2f);--muted:light-dark(#56655b,#9eb0a2);--forest:light-dark(#1d3a2a,#0b1a11);--francois:#2c6694;--elagage:#7d4f24;--plantation:#2f7a3a;--broyage:#9a5f08;--entretien:#56661a;--danger:#b3261e;--ok:#2f7a3a}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif;overflow-x:clip;-webkit-tap-highlight-color:transparent}
@@ -147,8 +147,8 @@ body.mapview{overflow:hidden}
 .ttl #ttl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tic{color:var(--mc);display:flex}
 :root[data-theme=dark] .tic{filter:brightness(1.7)}
-.tools{position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 66px);z-index:10;display:flex;flex-direction:column;gap:7px;width:84px}
-.tool{background:var(--card);color:var(--ink);border:0;border-radius:12px;min-height:44px;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer;padding:0 4px}
+.tools{position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 66px);z-index:10;display:flex;flex-direction:column;gap:6px;width:84px}
+.tool{white-space:nowrap;background:var(--card);color:var(--ink);border:0;border-radius:12px;min-height:42px;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer;padding:0 4px}
 .tool.on{background:var(--mc);color:#fff}
 .tsep{height:4px}
 .hintbar{position:fixed;left:10px;right:102px;top:calc(env(safe-area-inset-top) + 66px);z-index:10;background:var(--card);border-radius:14px;padding:10px 12px;box-shadow:0 2px 12px rgba(0,0,0,.25)}
@@ -156,10 +156,10 @@ body.mapview{overflow:hidden}
 .hintbar p{margin:0 0 8px;font-size:15px}
 .hb{display:flex;gap:6px;flex-wrap:wrap}
 .drawer{position:fixed;left:0;right:0;bottom:0;z-index:9;max-width:760px;margin:0 auto;background:var(--bg);border-radius:22px 22px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.22);display:flex;flex-direction:column;height:var(--h);transition:height .25s ease}
-.drawer[data-s=min]{--h:140px}.drawer[data-s=mid]{--h:50vh}.drawer[data-s=max]{--h:88vh}
+.drawer[data-s=min]{--h:140px}.drawer[data-s=mid]{--h:44vh}.drawer[data-s=max]{--h:88vh}
 .handle{border:0;background:none;min-height:30px;width:100%;display:grid;place-items:center;cursor:pointer;flex:none}
 .handle i{width:44px;height:5px;border-radius:5px;background:var(--line);display:block}
-.dc{overflow-y:auto;flex:1;padding:0 16px calc(24px + env(safe-area-inset-bottom));display:grid;gap:14px;align-content:start;-webkit-overflow-scrolling:touch}
+.dc{grid-template-columns:minmax(0,1fr);grid-auto-rows:max-content;overflow-y:auto;flex:1;padding:0 16px calc(24px + env(safe-area-inset-bottom));display:grid;gap:14px;align-content:start;-webkit-overflow-scrolling:touch}
 .dh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .dh h1,.dh h2{font-size:28px}
 .dh .sub{margin:4px 0 0;color:var(--muted)}
@@ -191,3 +191,29 @@ body.mapview{overflow:hidden}
 .pbtn{margin-top:8px;border:1px solid #d6d6d6;background:#fff;border-radius:10px;min-height:40px;padding:0 14px;font-weight:700;color:#b3261e;cursor:pointer}
 @media(min-width:800px){.drawer{left:16px;right:auto;width:440px;bottom:16px;border-radius:22px}.drawer[data-s=max]{--h:calc(100vh - 110px)}.hintbar{left:472px}}
 .login{min-height:100vh;background:var(--forest);display:grid;place-items:center;padding:24px;padding-top:calc(24px + env(safe-area-inset-top))}.lcard{background:var(--bg);border-radius:22px;padding:24px;width:100%;max-width:420px}.lcard h1{font-size:34px;margin:4px 0 18px}.lcard .date{color:var(--muted)}.lform{display:grid;gap:12px}.lwait{color:#fff;font-size:18px}
+
+/* Module Entretien : planning hebdomadaire et prestations */
+.tiles .tile:nth-child(5){grid-column:1/-1;min-height:104px}
+.wnav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.wnav b{font:700 22px/1.1 "Barlow Condensed",sans-serif}
+.wnav .btn{font-size:22px;width:48px}
+.wstrip{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scroll-snap-type:x proximity}
+.wc{flex:none;min-width:58px;min-height:54px;border-radius:12px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;font-weight:700;line-height:1.1;cursor:pointer;scroll-snap-align:center}
+.wc small{font-weight:500;color:var(--muted);font-size:12px}
+.wc.done{border:2px solid var(--ok)}
+.wc.on{background:var(--mc);color:#fff;border-color:transparent}
+.wc.on small{color:#fff}
+.prl{list-style:none;margin:0;padding:0}
+.prl li{border-top:1px solid var(--line);padding:12px 0}
+.prl li:first-child{border-top:0}
+.prh{display:flex;gap:8px;justify-content:space-between;align-items:flex-start}
+.prl details{margin-top:6px}
+.prl summary{color:var(--ok);font-weight:600;cursor:pointer;min-height:32px}
+.wks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.wk{min-height:38px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-weight:700;font-size:14px;cursor:pointer}
+.wk.ok{background:var(--ok);color:#fff;border-color:transparent}
+.wk.late{border:2px solid var(--danger);color:var(--danger)}
+.wk.now{border:2px solid var(--mc)}
+.wk.x2{color:var(--muted);margin-left:auto}
+.ph a{color:inherit}
+body.dmax .tools,body.dmax .hintbar{display:none}

@@ -2,10 +2,11 @@
 {
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const KEYS=['francois','elagage','plantation','broyage'];
+const KEYS=['francois','elagage','plantation','broyage','entretien'];
+const DEFL={francois:'Chantier François',elagage:'Élagage',plantation:'Plantation',broyage:'Broyage',entretien:'Entretien'};
 const ST={prevu:'À venir',en_cours:'En cours',pause:'En pause',termine:'Terminé'};
 const ORD={en_cours:0,prevu:1,pause:2,termine:3};
-const COL={francois:'#2c6694',elagage:'#7d4f24',plantation:'#2f7a3a',broyage:'#9a5f08'};
+const COL={francois:'#2c6694',elagage:'#7d4f24',plantation:'#2f7a3a',broyage:'#9a5f08',entretien:'#56661a'};
 const COLS=[['#d93025','Rouge'],['#f29900','Orange'],['#1a73e8','Bleu'],['#188038','Vert'],['#6d4c41','Marron']];
 const sv=p=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>';
 const ICON={
@@ -13,6 +14,7 @@ francois:sv('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v
 elagage:sv('<circle cx="12" cy="8.5" r="6"/><path d="M12 22v-8M12 15l-3-3M12 13l3-3"/>'),
 plantation:sv('<path d="M12 21v-9"/><path d="M12 12c0-4-3-6-7-6 0 4 3 6 7 6z"/><path d="M12 10c0-3 2-5 6-5 0 3-2 5-6 5z"/><path d="M6 21h12"/>'),
 broyage:sv('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>'),
+entretien:sv('<path d="M3 20h18"/><path d="M6 20c0-4 1-7 2-9M10 20c0-5 1-9 3-12M14 20c0-4 1-6 3-8M18 20c0-3 .5-5 1.5-6"/>'),
 back:sv('<path d="M15 5l-7 7 7 7"/>'),
 plus:sv('<path d="M12 5v14M5 12h14"/>'),
 set:sv('<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="7" cy="18" r="2" fill="currentColor"/>')};
@@ -20,12 +22,14 @@ const TPL={
 francois:['Visite et devis validé','Préparation du terrain','Travaux réalisés','Nettoyage du chantier','Réception client'],
 elagage:['DICT / repérage des réseaux','Balisage de la zone de travail','Élagage / taille','Évacuation ou broyage des rémanents','Nettoyage','Photos après travaux'],
 plantation:['Livraison des végétaux','Préparation du sol','Trous de plantation','Plantation','Paillage','Arrosage de plantation','Tuteurage'],
-broyage:['Accès broyeur vérifié','Tri des branchages','Broyage','Évacuation / épandage des copeaux','Nettoyage']};
+broyage:['Accès broyeur vérifié','Tri des branchages','Broyage','Évacuation / épandage des copeaux','Nettoyage'],
+entretien:[]};
 const FIELDS={
 francois:[{k:'travaux',l:'Type de travaux'},{k:'surface',l:'Surface (m²)',t:'number'}],
 elagage:[{k:'arbres',l:'Nombre d’arbres',t:'number'},{k:'essences',l:'Essences'},{k:'hauteur',l:'Hauteur max (m)',t:'number'},{k:'technique',l:'Technique',o:['Grimpe','Nacelle','Démontage','Abattage','Taille douce']},{k:'evac',l:'Rémanents',o:['Évacués','Broyés sur place','Laissés au client']},{k:'reseaux',l:'Réseaux à proximité',o:['Non','Oui – lignes électriques','Oui – voirie','Oui – autre']}],
 plantation:[{k:'vegetaux',l:'Végétaux (une ligne par essence)',t:'area'},{k:'paillage',l:'Paillage',o:['Aucun','Copeaux','Toile','Feutre biodégradable']},{k:'arrosage',l:'Arrosage',o:['Manuel','Goutte-à-goutte','Par le client']},{k:'garantie',l:'Garantie de reprise (mois)',t:'number'}],
-broyage:[{k:'volume',l:'Volume estimé (m³)',t:'number'},{k:'matiere',l:'Matière',o:['Branchages','Souches','Déchets verts mixtes']},{k:'machine',l:'Machine',o:['Broyeur thermique','Broyeur tracté','Rogneuse de souches']},{k:'copeaux',l:'Copeaux',o:['Laissés sur place','Paillage massifs','Évacués']}]};
+broyage:[{k:'volume',l:'Volume estimé (m³)',t:'number'},{k:'matiere',l:'Matière',o:['Branchages','Souches','Déchets verts mixtes']},{k:'machine',l:'Machine',o:['Broyeur thermique','Broyeur tracté','Rogneuse de souches']},{k:'copeaux',l:'Copeaux',o:['Laissés sur place','Paillage massifs','Évacués']}],
+entretien:[{k:'marche',l:'Marché'},{k:'lot',l:'N° de site'}]};
 const HILLS='<svg class="hills" viewBox="0 0 400 74" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><path d="M0 50C60 20 120 22 190 44S320 30 400 36V74H0z" fill="#2f5a3c"/><g fill="#24492f"><circle cx="70" cy="30" r="13"/><rect x="68" y="38" width="4" height="12" fill="#1a3423"/><circle cx="300" cy="26" r="10"/><circle cx="318" cy="31" r="8"/><rect x="299" y="32" width="3" height="10" fill="#1a3423"/></g><path d="M0 62C90 44 170 50 240 60S350 52 400 56V74H0z" fill="var(--bg)"/></svg>';
 const LS='paysage-carte-v1';
 /* ---------- partage d'équipe : config.js, sinon configuration collée dans l'app ---------- */
@@ -44,7 +48,7 @@ try{PEND=Object.assign(PEND,JSON.parse(localStorage.getItem(LS+'-attente'))||{})
 let P={base:'osm',cad:true};try{Object.assign(P,JSON.parse(localStorage.getItem(LS+'-carte'))||{})}catch(e){}
 let V=null,HM=null,mode=null,tmp=null,busy=false,pending=null,filt='tous',q='',last=null,dS='mid';
 
-const lbl=k=>D.reglages.modules[k]||k;
+const lbl=k=>(D.reglages.modules||{})[k]||DEFL[k]||k;
 const iso=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
 const fd=d=>d?new Date(d+'T12:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'—';
 const fdl=d=>d?new Date(d+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}):'';
@@ -54,13 +58,23 @@ const fmtL=m=>m>=1000?(m/1000).toLocaleString('fr-FR',{maximumFractionDigits:2})
 const uid=()=>Math.random().toString(36).slice(2,9);
 const find=id=>D.chantiers.find(c=>c.id===id);
 const curC=()=>{const h=location.hash.slice(1);return h.startsWith('c-')?find(h.slice(2)):null};
-const prog=c=>c.statut==='termine'?100:(c.taches.length?Math.round(c.taches.filter(t=>t.done).length*100/c.taches.length):0);
+/* ---------- semaines ISO (planning d'entretien) ---------- */
+function isoW(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=t.getUTCFullYear();return{y,w:Math.ceil(((t-Date.UTC(y,0,1))/864e5+1)/7)}}
+function wStart(y,w){const s=new Date(Date.UTC(y,0,4)),day=s.getUTCDay()||7;s.setUTCDate(s.getUTCDate()-day+1+(w-1)*7);return s}
+const wLast=y=>isoW(new Date(y,11,28)).w;
+const wLbl=(y,w)=>{const a=wStart(y,w),b=new Date(a.getTime()+6*864e5),f=d=>d.toLocaleDateString('fr-FR',{day:'numeric',month:'short',timeZone:'UTC'});return f(a)+' – '+f(b)+(y!==isoW(new Date()).y?' '+y:'')};
+const wStep=(o,n)=>{let {y,w}=o;w+=n;if(w<1){y--;w=wLast(y)}else if(w>wLast(y)){y++;w=1}return{y,w}};
+const passCount=(c,y)=>{let t=0,d=0;(c.prestations||[]).forEach(p=>p.sem.forEach(s=>{t++;if(p.faits[y+'-'+s])d++}));return{t,d}};
+const eur=m=>(+m||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:2});
+const fmtJ=j=>j?String(+j).replace('.',',')+' j':'';
+let PW=isoW(new Date()),ET='plan';
+const prog=c=>{if(c.statut==='termine')return 100;if(c.module==='entretien'){const k=passCount(c,isoW(new Date()).y);return k.t?Math.round(k.d*100/k.t):0}return c.taches.length?Math.round(c.taches.filter(t=>t.done).length*100/c.taches.length):0};
 const hrs=c=>c.journal.reduce((s,j)=>s+(+j.heures||0),0);
 const safe=s=>/^(data:image\/|https:\/\/)/.test(String(s))?s:'';
 const sorter=(a,b)=>(ORD[a.statut]-ORD[b.statut])||String(a.debut).localeCompare(String(b.debut));
 const hasG=c=>!!c&&c.lat!==''&&c.lat!=null&&c.lon!==''&&c.lon!=null&&!isNaN(+c.lat)&&!isNaN(+c.lon);
 const osmUrl=c=>hasG(c)?`https://www.openstreetmap.org/?mlat=${+c.lat}&mlon=${+c.lon}#map=19/${+c.lat}/${+c.lon}`:'https://www.openstreetmap.org/search?query='+encodeURIComponent(c.adresse||'');
-const norm=c=>{c.parcelles=c.parcelles||[];c.annotations=c.annotations||[];return c};
+const norm=c=>{c.parcelles=c.parcelles||[];c.annotations=c.annotations||[];c.taches=c.taches||[];c.journal=c.journal||[];c.details=c.details||{};if(c.module==='entretien')c.prestations=(c.prestations||[]).map(p=>(p.faits=p.faits||{},p.sem=p.sem||[],p));return c};
 D.chantiers.forEach(norm);D.chantiers.forEach(c=>lastJ[c.id]=JSON.stringify(c));lastR=JSON.stringify(D.reglages);
 
 /* ---------- mesures ---------- */
@@ -78,7 +92,10 @@ const g=JSON.stringify({type:'Point',coordinates:[+lng.toFixed(7),+lat.toFixed(7
 try{const r=await fetch('https://apicarto.ign.fr/api/cadastre/parcelle?geom='+encodeURIComponent(g));if(r.ok){const j=await r.json();if(j.features&&j.features[0])return parcelOf(j.features[0],lat,lng)}}catch(e){}
 try{const u='https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=CADASTRALPARCELS.PARCELLAIRE_EXPRESS:parcelle&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=1&CQL_FILTER='+encodeURIComponent(`INTERSECTS(geom,POINT(${lat} ${lng}))`);const r=await fetch(u);if(r.ok){const j=await r.json();if(j.features&&j.features[0])return parcelOf(j.features[0],lat,lng)}}catch(e){}
 return null}
-async function geocode(c){try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=fr&q='+encodeURIComponent(c.adresse));const j=await r.json();if(j&&j[0]){c.lat=+(+j[0].lat).toFixed(6);c.lon=+(+j[0].lon).toFixed(6);return true}}catch(e){}return false}
+async function geocode(c){const qs=[c.adresse];const tail=String(c.adresse||'').split(',').pop().trim();if(tail!==c.adresse&&/\d{5}/.test(tail))qs.push(tail);
+for(const q0 of qs){try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=fr&q='+encodeURIComponent(q0));const j=await r.json();if(j&&j[0]){c.lat=+(+j[0].lat).toFixed(6);c.lon=+(+j[0].lon).toFixed(6);return true}}catch(e){}}return false}
+const geoTried=new Set();let geoBusy=false;
+async function geoMissing(list){if(geoBusy)return;geoBusy=true;let any=false;for(const c of list){if(hasG(c)||!c.adresse||geoTried.has(c.id))continue;geoTried.add(c.id);if(await geocode(c)){any=true;save();if(V)drawOverlays()}await new Promise(r=>setTimeout(r,1100))}geoBusy=false;if(any&&V)fit()}
 
 /* ---------- couches de carte ---------- */
 const wmts=(l,s,f)=>`https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${l}&STYLE=${encodeURIComponent(s)}&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=${encodeURIComponent(f)}`;
@@ -91,7 +108,7 @@ const popupC=c=>`<b>${esc(c.titre)}</b><br>${esc(c.client)} · ${ST[c.statut]}<b
 const savePref=()=>{try{localStorage.setItem(LS+'-carte',JSON.stringify(P))}catch(e){}};
 function setBase(){if(!V||!V.map)return;if(V.base)V.map.removeLayer(V.base);V.base=T[P.base]().addTo(V.map);V.base.bringToBack()}
 function setCad(){if(!V||!V.map)return;if(V.cad){V.map.removeLayer(V.cad);V.cad=null}if(P.cad)V.cad=T.cad().addTo(V.map)}
-const dpx=()=>innerWidth>=800?0:({min:140,mid:innerHeight*.5,max:innerHeight*.88}[dS]);
+const dpx=()=>innerWidth>=800?0:({min:140,mid:innerHeight*.44,max:innerHeight*.88}[dS]);
 function boundsOf(list){const b=L.latLngBounds([]);list.forEach(c=>{c.parcelles.forEach(p=>{try{b.extend(L.geoJSON(p.geom).getBounds())}catch(e){}});c.annotations.forEach(a=>a.pts.forEach(x=>b.extend(x)));if(hasG(c))b.extend([+c.lat,+c.lon])});return b}
 function fit(){if(!V||!V.map)return;const list=V.kind==='det'?[curC()]:D.chantiers.filter(c=>c.module===V.mod);let b=boundsOf(list);if(!b.isValid())b=boundsOf(D.chantiers.filter(hasG));
 const opt={paddingTopLeft:[innerWidth>=800?480:24,80],paddingBottomRight:[104,dpx()+24],maxZoom:18};
@@ -114,7 +131,7 @@ drawTmp()}
 function drawTmp(){if(!V||!V.map)return;if(V.tmpL){V.tmpL.remove();V.tmpL=null}if(!tmp)return;const g=L.layerGroup(),o={color:'#d93025',weight:4,dashArray:'8 6',interactive:false};
 if(tmp.pts.length>1)(tmp.type==='zone'&&tmp.pts.length>2?L.polygon(tmp.pts,{...o,fillOpacity:.15}):L.polyline(tmp.pts,o)).addTo(g);
 tmp.pts.forEach(x=>L.circleMarker(x,{radius:7,color:'#fff',weight:2,fillColor:'#d93025',fillOpacity:1,interactive:false}).addTo(g));g.addTo(V.map);V.tmpL=g}
-function teardown(){if(V&&V.map)V.map.remove();V=null;if(HM){HM.remove();HM=null}mode=null;tmp=null}
+function teardown(){document.body.classList.remove('dmax');if(V&&V.map)V.map.remove();V=null;if(HM){HM.remove();HM=null}mode=null;tmp=null}
 function mount(kind,mod,key){teardown();$('#root').innerHTML=shell(kind,mod);V={key,kind,mod,map:null};if(!window.L)return;
 const m=L.map('mapbg',{zoomControl:false,attributionControl:false,maxZoom:20}).setView([46.6,2.4],6);V.map=m;setBase();setCad();
 m.on('click',onMapClick);
@@ -141,21 +158,37 @@ save();render()}
 else if(mode==='note')openSheet(fAnn('note',[[+lat.toFixed(7),+lng.toFixed(7)]]));
 else if(tmp){tmp.pts.push([+lat.toFixed(7),+lng.toFixed(7)]);drawTmp();updTools()}
 else if(mode==='pin'){c.lat=+lat.toFixed(6);c.lon=+lng.toFixed(6);setMode(null);save();render();toast('Chantier placé sur la carte')}}
-function setDrawer(s){dS=s;const d=$('#drawer');if(d)d.dataset.s=s}
+function setDrawer(s){dS=s;const d=$('#drawer');if(d)d.dataset.s=s;document.body.classList.toggle('dmax',s==='max'&&innerWidth<800)}
 
 /* ---------- vues ---------- */
-function card(c){const p=prog(c),n=c.taches.filter(t=>t.done).length,np=c.parcelles.length;
-return `<a class="card" href="#c-${esc(c.id)}" style="--mc:var(--${c.module})"><div class="ch"><span class="mod">${ICON[c.module]}${esc(lbl(c.module))}</span><span class="pill s-${c.statut}">${ST[c.statut]}</span></div><h3>${esc(c.titre)}</h3><p class="meta">${esc(c.client)}${c.adresse?' · '+esc(c.adresse):''}</p><div class="bar"><i style="width:${p}%"></i></div><div class="cf"><span>${p} % · ${n}/${c.taches.length} tâches${np?' · '+np+' parcelle'+(np>1?'s':''):''}</span><span>${fd(c.debut)} → ${fd(c.fin)}</span></div></a>`}
+function card(c){const p=prog(c),n=c.taches.filter(t=>t.done).length,np=c.parcelles.length,pc=c.module==='entretien'?passCount(c,isoW(new Date()).y):null;
+return `<a class="card" href="#c-${esc(c.id)}" style="--mc:var(--${c.module})"><div class="ch"><span class="mod">${ICON[c.module]}${esc(lbl(c.module))}</span><span class="pill s-${c.statut}">${ST[c.statut]}</span></div><h3>${esc(c.titre)}</h3><p class="meta">${esc(c.client)}${c.adresse?' · '+esc(c.adresse):''}</p><div class="bar"><i style="width:${p}%"></i></div><div class="cf"><span>${p} % · ${pc?pc.d+'/'+pc.t+' passages':n+'/'+c.taches.length+' tâches'}${np?' · '+np+' parcelle'+(np>1?'s':''):''}</span><span>${pc?'':fd(c.debut)+' → '+fd(c.fin)}</span></div></a>`}
 function tile(k){const cs=D.chantiers.filter(c=>c.module===k),e=cs.filter(c=>c.statut==='en_cours').length;
 return `<a class="tile" href="#m-${k}" style="--mc:var(--${k})"><span class="ti">${ICON[k]}</span><span class="tn">${esc(lbl(k))}</span><span class="tc">${e} en cours · ${cs.length} au total</span></a>`}
-function vHome(){const all=D.chantiers,enc=all.filter(c=>c.statut==='en_cours').sort(sorter),av=all.filter(c=>c.statut==='prevu'),m=iso().slice(0,7);
+function vHome(){const all=D.chantiers.filter(c=>c.module!=='entretien'),enc=all.filter(c=>c.statut==='en_cours').sort(sorter),av=all.filter(c=>c.statut==='prevu'),m=iso().slice(0,7);
 const hm=all.reduce((s,c)=>s+c.journal.filter(j=>String(j.date).startsWith(m)).reduce((a,j)=>a+(+j.heures||0),0),0);
 return `<header class="hero"><div class="hero-in"><div class="toprow"><div><p class="date">${fdl(iso())}</p><h1>${esc(D.reglages.entreprise)}</h1></div><button class="ibtn" data-act="settings" aria-label="Réglages">${ICON.set}</button></div>
 <div class="kpis"><div><b>${enc.length}</b><span>en cours</span></div><div><b>${av.length}</b><span>à venir</span></div><div><b>${fmtH(hm)}</b><span>ce mois-ci</span></div></div></div>${HILLS}</header>
 <main class="wrap"><div class="tiles">${KEYS.map(tile).join('')}</div>
-<h2 class="sec">Carte des chantiers</h2><div class="homemap" id="homemap"></div><p class="attr" style="margin-top:6px">Chantiers en cours, à venir et en pause · © OpenStreetMap</p>
+${homeEnt()}<h2 class="sec">Carte des chantiers</h2><div class="homemap" id="homemap"></div><p class="attr" style="margin-top:6px">Chantiers en cours, à venir et en pause · © OpenStreetMap</p>
 <h2 class="sec">Chantiers en cours</h2>${enc.length?`<div class="list">${enc.map(card).join('')}</div>`:'<p class="empty">Aucun chantier en cours.</p>'}
 ${D.exemples?'<p class="note">Les chantiers affichés sont des exemples. <button class="link" data-act="clear-ex">Les effacer</button></p>':''}</main>`}
+function weekRows(y,w){return D.chantiers.filter(c=>c.module==='entretien').map(c=>({c,ps:c.prestations.filter(p=>p.sem.includes(w))})).filter(r=>r.ps.length)}
+function homeEnt(){if(!D.chantiers.some(c=>c.module==='entretien'))return '';const {y,w}=isoW(new Date()),rows=weekRows(y,w),t=rows.reduce((s,r)=>s+r.ps.length,0),d=rows.reduce((s,r)=>s+r.ps.filter(p=>p.faits[y+'-'+w]).length,0);
+return `<a class="card" href="#m-entretien" style="--mc:var(--entretien);margin-top:14px"><div class="ch"><span class="mod">${ICON.entretien}Entretien · semaine ${w}</span><span class="pill ${t&&d===t?'s-termine':'s-en_cours'}">${t?d+'/'+t+' faits':'Rien de prévu'}</span></div><h3>${t?t+' passage'+(t>1?'s':'')+' sur '+rows.length+' site'+(rows.length>1?'s':''):'Aucun passage cette semaine'}</h3><p class="meta">${esc(wLbl(y,w))} · ouvrir le planning</p></a>`}
+function nextWith(o){let x=o;for(let i=0;i<60;i++){x=wStep(x,1);if(weekRows(x.y,x.w).length)return x}return null}
+function dPlan(){const {y,w}=PW,rows=weekRows(y,w),all=new Set();D.chantiers.filter(c=>c.module==='entretien').forEach(c=>c.prestations.forEach(p=>p.sem.forEach(s=>all.add(s))));
+const ws=[...all].sort((a,b)=>a-b),lo=ws.length?Math.min(ws[0],w):w,hi=ws.length?Math.max(ws[ws.length-1],w):w,strip=[];
+for(let s=lo;s<=hi;s++){const r=weekRows(y,s),t=r.reduce((a,x)=>a+x.ps.length,0),d=r.reduce((a,x)=>a+x.ps.filter(p=>p.faits[y+'-'+s]).length,0);strip.push(`<button class="wc ${s===w?'on':''} ${t&&d===t?'done':''}" data-act="pw" data-y="${y}" data-w="${s}" ${s===w?'id="wcur"':''}>S${s}<small>${t?d+'/'+t:'—'}</small></button>`)}
+const t=rows.reduce((s,r)=>s+r.ps.length,0),d=rows.reduce((s,r)=>s+r.ps.filter(p=>p.faits[y+'-'+w]).length,0),j=rows.reduce((s,r)=>s+r.ps.reduce((a,p)=>a+(+p.delai||0),0),0),nx=t?null:nextWith(PW);
+return `<div class="wnav"><button class="btn sm" data-act="pwstep" data-n="-1" aria-label="Semaine précédente">‹</button><div style="text-align:center"><b>Semaine ${w}</b><div class="meta">${esc(wLbl(y,w))}</div></div><button class="btn sm" data-act="pwstep" data-n="1" aria-label="Semaine suivante">›</button></div>
+<div class="wstrip">${strip.join('')}</div>
+${t?`<p class="tot" style="margin:0">${d}/${t} passages faits · environ ${fmtJ(Math.round(j*100)/100)} de travail</p>`+rows.map(r=>`<section class="panel"><div class="ph"><a href="#c-${esc(r.c.id)}"><h2>${esc(r.c.titre)}</h2></a><span class="meta">${r.ps.filter(p=>p.faits[y+'-'+w]).length}/${r.ps.length}</span></div><ul class="tasks">${r.ps.map(p=>`<li><label><input type="checkbox" data-act="pas" data-c="${esc(r.c.id)}" data-p="${esc(p.id)}" data-y="${y}" data-w="${w}" ${p.faits[y+'-'+w]?'checked':''}><span>${esc(String(p.des).split('\n')[0])}<small class="meta" style="display:block;text-decoration:none">${p.q!=null&&p.q!==''?esc(String(p.q).replace('.',','))+' '+esc(p.u||'')+' · ':''}${fmtJ(p.delai)}${p.hea?' · hors entretien annuel':''}</small></span></label></li>`).join('')}</ul></section>`).join(''):`<p class="empty">Aucun passage prévu cette semaine.${nx?` <button class="link" data-act="pw" data-y="${nx.y}" data-w="${nx.w}">Prochain : semaine ${nx.w}</button>`:''}</p>`}`}
+function dPrest(c){const {y,w}=isoW(new Date()),ps=c.prestations,mEA=ps.filter(p=>!p.hea).reduce((s,p)=>s+(+p.m||0),0),mH=ps.filter(p=>p.hea).reduce((s,p)=>s+(+p.m||0),0);
+return `<section class="panel"><h2>Prestations d’entretien <small>${y}</small></h2>${ps.length?`<p class="hint">Touchez une semaine pour marquer le passage comme fait. En rouge : semaine passée, pas encore cochée.</p><ul class="prl">${ps.map(p=>{const L=String(p.des).split('\n'),rest=L.slice(1).join('\n').trim();
+return `<li><div class="prh"><b>${p.n?esc(p.n)+'. ':''}${esc(L[0])}</b>${p.hea?'<span class="pill s-pause">Hors entretien annuel</span>':''}</div><span class="meta">${p.q!=null&&p.q!==''?esc(String(p.q).replace('.',','))+' '+esc(p.u||'')+' · ':''}${p.sem.length} passage${p.sem.length>1?'s':''}${p.delai?' · '+fmtJ(p.delai)+' par passage':''}${p.m?' · '+eur(p.m):''}</span>${rest?`<details><summary>Détails</summary><p class="notes">${esc(rest)}</p></details>`:''}
+<div class="wks">${p.sem.map(s=>{const f=p.faits[y+'-'+s];return `<button class="wk ${f?'ok':s<w?'late':s===w?'now':''}" data-act="pas" data-c="${esc(c.id)}" data-p="${esc(p.id)}" data-y="${y}" data-w="${s}" aria-pressed="${!!f}">S${s}${f?' ✓':''}</button>`}).join('')}<button class="wk x2" data-act="delpr" data-p="${esc(p.id)}" aria-label="Supprimer la prestation">×</button></div></li>`}).join('')}</ul><p class="tot">Montant annuel HT : ${eur(mEA)}${mH?' · hors entretien annuel : '+eur(mH):''}</p>`:'<p class="hint">Aucune prestation pour ce site.</p>'}
+<form class="addt" data-form="prest" style="flex-wrap:wrap"><input name="des" placeholder="Nouvelle prestation (ex. tonte)" aria-label="Prestation" required style="flex:1 1 100%"><input name="sem" placeholder="Semaines : 30, 39" aria-label="Semaines" required style="flex:1"><input name="delai" placeholder="Jours" inputmode="decimal" aria-label="Durée par passage en jours" style="width:80px;flex:none"><button>Ajouter</button></form></section>`}
 function listHTML(k){const s=q.toLowerCase();const cs=D.chantiers.filter(c=>c.module===k&&(filt==='tous'||c.statut===filt)&&(!s||(c.titre+' '+c.client+' '+c.adresse+' '+c.equipe).toLowerCase().includes(s))).sort(sorter);
 return cs.length?`<div class="list">${cs.map(card).join('')}</div>`:'<p class="empty">Aucun chantier ici. Touchez « Nouveau » pour en créer un.</p>'}
 function shell(kind,mod){const det=kind==='det';
@@ -163,11 +196,12 @@ return `<div id="mapbg" class="mapbg">${window.L?'':'<p class="nomap">Carte indi
 <div class="topbar" style="--mc:var(--${mod})"><a class="fbtn round" href="${det?'#m-'+mod:'#'}" aria-label="Retour">${ICON.back}</a><div class="fbtn ttl"><span class="tic">${ICON[mod]}</span><span id="ttl"></span></div></div>
 <div class="tools" style="--mc:var(--${mod})"><button class="tool" data-act="base" id="tb-base">Photo</button><button class="tool" data-act="cad" id="tb-cad">Cadastre</button>
 ${det?'<span class="tsep"></span>'+[['parcelle','Parcelle'],['note','Note'],['ligne','Ligne'],['zone','Zone'],['pin','Placer']].map(([m,l])=>`<button class="tool" data-act="mode" data-v="${m}">${l}</button>`).join(''):''}
-<button class="tool" data-act="me">Ma position</button></div>
+<button class="tool" data-act="me">Me situer</button></div>
 <div id="hint" class="hintbar" hidden></div>
 <div class="drawer" id="drawer" data-s="${dS}" style="--mc:var(--${mod})"><button class="handle" data-act="drawer" aria-label="Agrandir ou réduire"><i></i></button><div class="dc" id="dc"></div></div>`}
 const ATTR='<p class="attr">Fond de carte © contributeurs OpenStreetMap · Cadastre et photos aériennes © IGN</p>';
 function dMod(k){const cs=D.chantiers.filter(c=>c.module===k),e=cs.filter(c=>c.statut==='en_cours').length;
+if(k==='entretien'){const pc=cs.reduce((a,c)=>{const x=passCount(c,PW.y);return{t:a.t+x.t,d:a.d+x.d}},{t:0,d:0});return `<div class="dh"><div><h2>${esc(lbl(k))}</h2><p class="sub">${cs.length} site${cs.length>1?'s':''} · ${pc.d}/${pc.t} passages faits en ${PW.y}</p></div><button class="btn primary" data-act="new" data-m="${k}">${ICON.plus}Site</button></div><div class="seg" style="grid-template-columns:1fr 1fr"><button class="${ET==='plan'?'on':''}" data-act="et" data-v="plan">Planning</button><button class="${ET==='sites'?'on':''}" data-act="et" data-v="sites">Sites</button></div>${ET==='plan'?dPlan():`<div id="lst">${listHTML(k)}</div>`}${ATTR}`}
 return `<div class="dh"><div><h2>${esc(lbl(k))}</h2><p class="sub">${cs.length} chantier${cs.length>1?'s':''} · ${e} en cours</p></div><button class="btn primary" data-act="new" data-m="${k}">${ICON.plus}Nouveau</button></div>
 <div class="tools2" style="display:grid;gap:10px"><input id="q" type="search" placeholder="Rechercher un chantier, un client…" value="${esc(q)}" aria-label="Rechercher"><div class="chips">${['tous',...Object.keys(ST)].map(s=>`<button class="chip ${filt===s?'on':''}" data-act="filt" data-v="${s}">${s==='tous'?'Tous':ST[s]}</button>`).join('')}</div></div><div id="lst">${listHTML(k)}</div>${ATTR}`}
 function row(l,v){return v?`<div><dt>${l}</dt><dd>${v}</dd></div>`:''}
@@ -185,7 +219,7 @@ ${c.parcelles.length?`<ul class="plist">${c.parcelles.map((x,i)=>`<li><i class="
 ${c.annotations.length?`<ul class="plist">${c.annotations.map(a=>`<li><i class="dot" style="background:${esc(a.couleur)}"></i><button class="lk" data-act="zooma" data-a="${esc(a.id)}"><b>${esc(a.texte||{note:'Note',ligne:'Ligne',zone:'Zone'}[a.type])}</b><span>${{note:'Note',ligne:'Ligne',zone:'Zone'}[a.type]}${annMeasure(a)?' · '+annMeasure(a):''}</span></button><button class="x" data-act="delann" data-a="${esc(a.id)}" aria-label="Supprimer l’annotation">×</button></li>`).join('')}</ul>`:'<p class="hint">Avec les outils Note, Ligne et Zone, dessinez sur la carte : massif, haie à planter, arbre à abattre, accès…</p>'}</section>
 <section class="panel"><h2>Localisation</h2><p class="hint" style="margin-bottom:10px">${hasG(c)?'GPS '+(+c.lat)+', '+(+c.lon):'Chantier pas encore placé : utilisez « Placer » ou le bouton ci-dessous.'}</p><div class="hb"><button class="btn sm" data-act="geo-addr">Localiser l’adresse</button><a class="btn sm" href="${esc(osmUrl(c))}" target="_blank" rel="noopener">Ouvrir OpenStreetMap</a></div></section>
 <section class="panel"><h2>Informations</h2><dl class="info">${row('Téléphone',tel)}${row('Dates',fd(c.debut)+' → '+fd(c.fin))}${row('Équipe',esc(c.equipe))}${det}</dl>${c.notes?`<p class="notes">${esc(c.notes)}</p>`:''}</section>
-<section class="panel"><h2>Tâches <small>${n}/${c.taches.length}</small></h2><ul class="tasks">${c.taches.map((t,i)=>`<li><label><input type="checkbox" data-act="task" data-i="${i}" ${t.done?'checked':''}><span>${esc(t.t)}</span></label><button class="x" data-act="deltask" data-i="${i}" aria-label="Supprimer la tâche">×</button></li>`).join('')}</ul>
+${c.module==='entretien'?dPrest(c):''}<section class="panel"><h2>Tâches <small>${n}/${c.taches.length}</small></h2><ul class="tasks">${c.taches.map((t,i)=>`<li><label><input type="checkbox" data-act="task" data-i="${i}" ${t.done?'checked':''}><span>${esc(t.t)}</span></label><button class="x" data-act="deltask" data-i="${i}" aria-label="Supprimer la tâche">×</button></li>`).join('')}</ul>
 <form class="addt" data-form="task"><input name="t" placeholder="Ajouter une tâche" aria-label="Nouvelle tâche"><button>Ajouter</button></form></section>
 <section class="panel"><div class="ph"><h2>Journal de chantier</h2><button class="btn sm" data-act="journal">${ICON.plus}Entrée</button></div>
 ${J.length?J.map(j=>`<article class="je"><div class="jh"><b>${esc(fdl(j.date))}</b><span>${esc(j.auteur)}${j.auteur?' · ':''}${fmtH(j.heures)}</span></div>${j.note?`<p>${esc(j.note)}</p>`:''}${(j.photos||[]).length?`<div class="phr">${j.photos.map(s=>{const src=phSrc(s);return (src||String(s).startsWith('ph:'))?`<button data-act="zoom" data-src="${esc(s)}"><img data-ph="${esc(s)}" ${src?`src="${esc(src)}"`:''} alt="Photo du chantier" loading="lazy"></button>`:''}).join('')}</div>`:''}<button class="link danger" data-act="delj" data-j="${esc(j.id)}">Supprimer</button></article>`).join(''):'<p class="hint">Notez ici chaque journée : heures, travaux faits, photos.</p>'}</section>
@@ -198,10 +232,10 @@ else if(h.startsWith('c-')&&(c=find(h.slice(2)))){kind='det';mod=c.module}
 document.body.classList.toggle('mapview',kind!=='home');
 if(kind==='home'){teardown();$('#root').innerHTML=vHome();initHomeMap();if(h!==last)window.scrollTo(0,0);last=h;return}
 const key=kind+':'+(c?c.id:mod),fresh=!V||V.key!==key;
-if(fresh){if(kind==='mod')q='';mount(kind,mod,key)}
-$('#ttl').textContent=c?c.titre:lbl(mod);
+if(fresh){if(kind==='mod')q='';mount(kind,mod,key);geoMissing(c?[c]:D.chantiers.filter(x=>x.module===mod))}
+$('#ttl').textContent=c?c.titre:lbl(mod);document.body.classList.toggle('dmax',dS==='max'&&innerWidth<800);
 $('#dc').innerHTML=c?dDet(c):dMod(mod);
-drawOverlays();updTools();if(fresh){fit();$('#dc').scrollTop=0}loadPhotos();last=h}
+drawOverlays();updTools();if(fresh){fit();$('#dc').scrollTop=0}loadPhotos();const wc=$('#wcur');if(wc){const st=wc.parentElement;st.scrollLeft=wc.offsetLeft-st.offsetLeft-st.clientWidth/2+wc.clientWidth/2}last=h}
 
 /* ---------- formulaires ---------- */
 const inp=(n,l,v,t='text',req)=>`<label class="f"><span>${l}</span><input name="${n}" type="${t}" value="${esc(v)}" ${t==='number'?'inputmode="decimal" step="any" min="0"':''} ${req?'required':''}></label>`;
@@ -300,6 +334,11 @@ case 'imp':openSheet(`<form class="sh-in" data-form="import"><div class="sh-h"><
 case 'base':P.base=P.base==='osm'?'photo':'osm';savePref();setBase();updTools();break;
 case 'cad':P.cad=!P.cad;savePref();setCad();updTools();if(P.cad&&V&&V.map&&V.map.getZoom()<13)toast('Zoomez pour voir le cadastre');break;
 case 'mode':setMode(b.dataset.v);break;
+case 'et':ET=b.dataset.v;render();break;
+case 'pw':PW={y:+b.dataset.y,w:+b.dataset.w};render();break;
+case 'pwstep':PW=wStep(PW,+b.dataset.n);render();break;
+case 'pas':{const s=find(b.dataset.c),p=s&&s.prestations.find(x=>x.id===b.dataset.p);if(!p)break;const k=b.dataset.y+'-'+b.dataset.w;if(p.faits[k])delete p.faits[k];else p.faits[k]={le:iso(),par:cloud&&cloud.user?cloud.user.email:''};save();render();break}
+case 'delpr':ask('Supprimer cette prestation du site ?',()=>{c.prestations=c.prestations.filter(x=>x.id!==b.dataset.p);save();render()});break;
 case 'mode-off':setMode(null);break;
 case 'undo-pt':if(tmp){tmp.pts.pop();drawTmp();updTools()}break;
 case 'finish':if(!tmp)break;if(tmp.pts.length<(tmp.type==='zone'?3:2)){toast(tmp.type==='zone'?'Placez au moins 3 points':'Placez au moins 2 points');break}openSheet(fAnn(tmp.type,tmp.pts));break;
@@ -325,6 +364,7 @@ document.addEventListener('touchend',e=>{if(ty==null)return;const dy=e.changedTo
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target,t=f.dataset.form,v=Object.fromEntries(new FormData(f)),c=curC();
 if(t==='fbcfg'){const o=parseCfg(v.cfg);if(!o){toast('Bloc non reconnu : il faut au moins apiKey et projectId');return}try{localStorage.setItem('paysage-carte-v1-firebase',JSON.stringify(o))}catch(err){}location.reload()}
 else if(t==='login'){const btn=f.querySelector('.primary');btn.disabled=true;btn.textContent='Connexion…';try{await cloud.AU.signInWithEmailAndPassword(cloud.auth,v.email.trim(),v.pw)}catch(err){btn.disabled=false;btn.textContent='Se connecter';toast(/network/.test(String(err&&err.code))?'Pas de connexion internet':'E-mail ou mot de passe incorrect')}}
+else if(t==='prest'&&c){const sem=[...new Set(String(v.sem).split(/[^0-9]+/).map(Number).filter(x=>x>=1&&x<=53))].sort((a,b)=>a-b);if(!sem.length){toast('Indiquez au moins une semaine (1 à 53)');return}c.prestations.push({id:uid(),n:'',des:String(v.des).trim(),u:'',q:'',m:0,hea:false,sem,delai:+String(v.delai||'').replace(',','.')||0,faits:{}});save();render();toast('Prestation ajoutée')}
 else if(t==='task'){const s=String(v.t||'').trim();if(s&&c){c.taches.push({t:s,done:false});save();render()}}
 else if(t==='chantier'){const det={};FIELDS[v.module].forEach(x=>det[x.k]=String(v['d_'+x.k]||'').trim());
 const base={titre:v.titre.trim(),client:v.client.trim(),adresse:v.adresse.trim(),tel:v.tel.trim(),debut:v.debut,fin:v.fin,heuresPrevues:v.heuresPrevues===''?'':+v.heuresPrevues,equipe:v.equipe.trim(),notes:v.notes.trim(),details:det};

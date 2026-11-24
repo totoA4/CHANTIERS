@@ -1,6 +1,6 @@
 # Suivi de chantiers
 
-Application web pour iPhone qui sert au suivi des chantiers d'une entreprise de paysage. Elle compte quatre modules : Chantier François, Élagage, Plantation et Broyage. Chaque module a une carte OpenStreetMap, avec le cadastre IGN, les parcelles et des annotations.
+Application web pour iPhone qui sert au suivi des chantiers d'une entreprise de paysage. Elle compte quatre modules : Chantier François, Élagage, Plantation et Broyage, plus un module Entretien qui suit les marchés d'entretien semaine par semaine. Chaque module a une carte OpenStreetMap, avec le cadastre IGN, les parcelles et des annotations.
 
 ## Fichiers
 
@@ -51,3 +51,11 @@ Dans `app.js`, en haut du fichier :
 - Fond de carte : © contributeurs OpenStreetMap.
 - Cadastre (Parcellaire Express) et photos aériennes : © IGN Géoplateforme (data.geopf.fr).
 - Sélection des parcelles : API Carto Cadastre de l'IGN.
+
+## Module Entretien
+
+Chaque site d'entretien a une liste de prestations. Pour chacune, l'app garde la désignation, la quantité, l'unité, le montant, la durée d'un passage et les **semaines ISO** où elle est prévue. Le planning revient tous les ans : les passages faits sont enregistrés par année et par semaine (`faits["2026-30"]`).
+
+- Onglet **Planning** : la liste des passages de la semaine pour tous les sites, à cocher.
+- Fiche d'un site : toutes ses prestations, avec les semaines à cocher et le montant annuel.
+- Le fichier `import-entretien-CCBVL.json` contient les 9 sites et les 50 prestations du DPGF CCBVL. Pour le charger, ouvrez Réglages, puis Importer. **Attention : l'import remplace toutes les données.**
