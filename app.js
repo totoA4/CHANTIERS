@@ -111,7 +111,9 @@ osm:()=>L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20
 photo:()=>L.tileLayer(wmts('ORTHOIMAGERY.ORTHOPHOTOS','normal','image/jpeg'),{maxZoom:20,maxNativeZoom:19}),
 cad:()=>L.tileLayer(wmts('CADASTRALPARCELS.PARCELLAIRE_EXPRESS','PCI vecteur','image/png'),{maxZoom:20,maxNativeZoom:19,minZoom:13})};
 const pin=c=>L.circleMarker([+c.lat,+c.lon],{radius:11,color:'#fff',weight:3,fillColor:COL[c.module],fillOpacity:1});
-const popupC=c=>`<b>${esc(c.titre)}</b><br>${esc(c.client)} · ${ST[c.statut]}<br><a href="#c-${esc(c.id)}">Ouvrir la fiche</a>`;
+const weekState=c=>{if(c.module!=='entretien')return null;const {y,w}=isoW(new Date()),ps=(c.prestations||[]).filter(p=>p.sem.includes(w));return ps.length?{t:ps.length,d:ps.filter(p=>p.faits[y+'-'+w]).length,w}:null};
+const pinMod=c=>{const ws=weekState(c),col=ws?(ws.d===ws.t?'#2f7a3a':'#e07b00'):COL[c.module];return L.circleMarker([+c.lat,+c.lon],{radius:13,color:'#fff',weight:3,fillColor:col,fillOpacity:1})};
+const popupC=c=>{const ws=weekState(c);return `<b>${esc(c.titre)}</b><br>${c.module==='entretien'?(c.contrat?'Contrat '+esc(c.contrat):'Entretien'):esc(c.client)+' · '+ST[c.statut]}${ws?`<br>Semaine ${ws.w} : ${ws.d}/${ws.t} passage${ws.t>1?'s':''} faits`:''}<br><a href="#c-${esc(c.id)}${c.module==='entretien'?'--prest':''}">Ouvrir la fiche</a>`};
 const savePref=()=>{try{localStorage.setItem(LS+'-carte',JSON.stringify(P))}catch(e){}};
 function setBase(){if(!V||!V.map)return;if(V.base)V.map.removeLayer(V.base);V.base=T[P.base]().addTo(V.map);V.base.bringToBack()}
 function setCad(){if(!V||!V.map)return;if(V.cad){V.map.removeLayer(V.cad);V.cad=null}if(P.cad)V.cad=T.cad().addTo(V.map)}
@@ -133,7 +135,9 @@ list.forEach(c=>{const col=COL[c.module];
 c.parcelles.forEach(p=>{const lay=L.geoJSON(p.geom,{style:{color:col,weight:3,fillColor:col,fillOpacity:.22},interactive:!det});
 if(det)lay.bindTooltip(esc(p.section+' '+p.numero),{permanent:true,direction:'center',className:'plab'});else lay.bindPopup(popupC(c));lay.addTo(g)});
 if(det)c.annotations.forEach(a=>annLayer(a).addTo(g));
-if(hasG(c)){const m=pin(c);if(!det)m.bindPopup(popupC(c));m.addTo(g)}});
+if(hasG(c)){const m=det?pin(c):pinMod(c);if(!det){m.bindPopup(popupC(c));m.bindTooltip(esc(c.titre),{permanent:true,direction:'top',offset:[0,-12],className:'pinlab'})}m.addTo(g)}});
+if(!det){if(V.mod==='entretien'&&P.autres!==false)D.chantiers.filter(c=>c.module!=='entretien'&&c.statut!=='termine'&&hasG(c)).forEach(c=>L.circleMarker([+c.lat,+c.lon],{radius:8,color:'#fff',weight:2,fillColor:COL[c.module],fillOpacity:1}).bindPopup(popupC(c)).addTo(g));
+const un=$('#unplaced');if(un){const np=list.filter(c=>!hasG(c));un.hidden=!np.length;un.innerHTML=np.length?`<b>${np.length} ${V.mod==='entretien'?'site':'chantier'}${np.length>1?'s':''} pas encore placé${np.length>1?'s':''}</b>${np.map(c=>`<a href="#c-${esc(c.id)}--carte">${esc(c.titre)}</a>`).join('')}<small>Touchez un nom, puis « Placer ».</small>`:''}}
 drawTmp()}
 function drawTmp(){if(!V||!V.map)return;if(V.tmpL){V.tmpL.remove();V.tmpL=null}if(!tmp)return;const g=L.layerGroup(),o={color:'#d93025',weight:4,dashArray:'8 6',interactive:false};
 if(tmp.pts.length>1)(tmp.type==='zone'&&tmp.pts.length>2?L.polygon(tmp.pts,{...o,fillOpacity:.15}):L.polyline(tmp.pts,o)).addTo(g);
@@ -224,7 +228,7 @@ ${kind==='mod'&&mod==='entretien'?ctrBar():''}<nav class="vtabs" role="tablist">
 function mapShell(det,mod,small){return `<div class="mapfull" id="mapfull" style="--mc:var(--${mod})">${small?`<a class="mapbig" href="#${CUR.kind==='det'?'c-'+esc(CUR.c.id):'m-'+mod}--carte">⤢ Agrandir la carte</a>`:''}<div id="mapbg" class="mapbg">${window.L?'':'<p class="nomap">Carte indisponible : vérifiez la connexion internet.</p>'}</div>
 <div class="tools"><button class="tool" data-act="base" id="tb-base">Photo</button><button class="tool" data-act="cad" id="tb-cad">Cadastre</button>
 ${det?'<span class="tsep"></span>'+[['parcelle','Parcelle'],['note','Note'],['ligne','Ligne'],['zone','Zone'],['pin','Placer']].map(([m,l])=>`<button class="tool" data-act="mode" data-v="${m}">${l}</button>`).join(''):''}
-<button class="tool" data-act="me">Me situer</button></div><div id="hint" class="hintbar" hidden></div><p class="mattr">© OpenStreetMap · Cadastre et photos © IGN</p></div>`}
+${!det&&mod==='entretien'?`<button class="tool ${P.autres!==false?'on':''}" data-act="autres" id="tb-autres">Autres</button>`:''}<button class="tool" data-act="me">Me situer</button></div><div id="hint" class="hintbar" hidden></div>${det?'':`<div id="unplaced" class="unplaced" hidden></div>${mod==='entretien'?'<div class="mleg"><span><i style="background:#e07b00"></i>Passage cette semaine</span><span><i style="background:#2f7a3a"></i>Fait</span><span><i style="background:var(--entretien)"></i>Rien cette semaine</span></div>':''}`}<p class="mattr">© OpenStreetMap · Cadastre et photos © IGN</p></div>`}
 function placeMap(){const f=$('#mapfull'),t=$('.vtop');if(f&&t){const sm=f.closest('.mapcol');(sm||f).style.top=Math.round(t.getBoundingClientRect().height+(sm?16:0))+'px';if(!sm)f.style.top=Math.round(t.getBoundingClientRect().bottom)+'px'}if(V&&V.map)V.map.invalidateSize()}
 const ATTR='<p class="attr">Fond de carte © contributeurs OpenStreetMap · Cadastre et photos aériennes © IGN</p>';
 function dList(k){return `<div style="display:grid;gap:10px"><input id="q" type="search" placeholder="Rechercher un chantier, un client…" value="${esc(q)}" aria-label="Rechercher"><div class="chips">${['tous',...Object.keys(ST)].map(s=>`<button class="chip ${filt===s?'on':''}" data-act="filt" data-v="${s}">${s==='tous'?'Tous':ST[s]}</button>`).join('')}</div></div><div id="lst">${listHTML(k)}</div>`}
@@ -430,6 +434,7 @@ case 'clear-ex':ask2('Effacer tous les chantiers d’exemple ?',()=>{D.chantiers
 case 'dl':{const bl=new Blob([JSON.stringify(D)],{type:'application/json'}),l=document.createElement('a');l.href=URL.createObjectURL(bl);l.download='sauvegarde-chantiers-'+iso()+'.json';document.body.appendChild(l);l.click();l.remove();break}
 case 'imp':openSheet(`<form class="sh-in" data-form="import"><div class="sh-h"><h2>Importer</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div><p class="hint">Choisissez un fichier de sauvegarde. Il remplacera toutes les données actuelles.</p><input type="file" name="file" accept=".json,application/json" required><button class="btn primary wide">Importer</button></form>`);break;
 case 'base':P.base=P.base==='osm'?'photo':'osm';savePref();setBase();updTools();break;
+case 'autres':P.autres=P.autres===false;savePref();const tb=$('#tb-autres');if(tb)tb.classList.toggle('on',P.autres!==false);drawOverlays();break;
 case 'cad':P.cad=!P.cad;savePref();setCad();updTools();if(P.cad&&V&&V.map&&V.map.getZoom()<13)toast('Zoomez pour voir le cadastre');break;
 case 'mode':if(V&&V.map)setMode(b.dataset.v);else{PMODE=b.dataset.v;goTab('carte')}break;
 case 'et':ET=b.dataset.v;render();break;

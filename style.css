@@ -422,3 +422,19 @@ body::after{content:""!important;inset:0!important;height:auto!important;opacity
 .sec,.hctr>span,.attr,.tabc>.hint,.legend{text-shadow:0 1px 3px light-dark(rgba(255,255,255,.9),rgba(0,0,0,.8))}
 .sec{color:light-dark(#10241a,#f0f5ee)}
 .hctr>span{color:light-dark(#10241a,#e6eee4)}
+
+/* ===== Repères des sites sur la carte ===== */
+.leaflet-tooltip.pinlab{background:#fff;border:0;border-radius:8px;font:700 13px Barlow,sans-serif;color:#14231a;padding:2px 8px;box-shadow:0 1px 5px rgba(0,0,0,.35);white-space:nowrap}
+.leaflet-tooltip.pinlab::before{border-top-color:#fff}
+.unplaced{position:absolute;left:10px;bottom:calc(30px + env(safe-area-inset-bottom));z-index:6;max-width:min(62%,340px);max-height:40%;overflow:auto;background:var(--card);border-radius:14px;padding:10px 12px;font-size:14px;box-shadow:0 2px 12px rgba(0,0,0,.25);display:grid;gap:4px}
+.unplaced[hidden]{display:none}
+.unplaced a{color:var(--ok);font-weight:700;text-decoration:underline;min-height:28px;display:flex;align-items:center}
+.unplaced small{color:var(--muted)}
+.mleg{position:absolute;left:10px;top:10px;z-index:6;background:var(--card);border-radius:12px;padding:6px 10px;font-size:12px;display:grid;gap:2px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.mleg span{display:flex;align-items:center;gap:6px}
+.mleg i{width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.mapfull .hintbar~.mleg{top:10px}
+@media (min-width:1100px){
+  body.split .mapcol .unplaced{bottom:auto;top:44px;left:8px;max-width:calc(100% - 16px);max-height:45%;font-size:13px}
+  body.split .mapcol .mleg{display:none}
+}
