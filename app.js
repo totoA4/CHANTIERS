@@ -57,7 +57,7 @@ const fmtA=m=>m>=10000?(m/10000).toLocaleString('fr-FR',{maximumFractionDigits:2
 const fmtL=m=>m>=1000?(m/1000).toLocaleString('fr-FR',{maximumFractionDigits:2})+' km':Math.round(m).toLocaleString('fr-FR')+' m';
 const uid=()=>Math.random().toString(36).slice(2,9);
 const find=id=>D.chantiers.find(c=>c.id===id);
-const curC=()=>{const h=location.hash.slice(1);return h.startsWith('c-')?find(h.slice(2)):null};
+const curC=()=>{const h=location.hash.slice(1).split('--')[0];return h.startsWith('c-')?find(h.slice(2)):null};
 /* ---------- semaines ISO (planning d'entretien) ---------- */
 function isoW(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=t.getUTCFullYear();return{y,w:Math.ceil(((t-Date.UTC(y,0,1))/864e5+1)/7)}}
 function wStart(y,w){const s=new Date(Date.UTC(y,0,4)),day=s.getUTCDay()||7;s.setUTCDate(s.getUTCDate()-day+1+(w-1)*7);return s}
@@ -74,7 +74,7 @@ const safe=s=>/^(data:image\/|https:\/\/)/.test(String(s))?s:'';
 const sorter=(a,b)=>(ORD[a.statut]-ORD[b.statut])||String(a.debut).localeCompare(String(b.debut));
 const hasG=c=>!!c&&c.lat!==''&&c.lat!=null&&c.lon!==''&&c.lon!=null&&!isNaN(+c.lat)&&!isNaN(+c.lon);
 const osmUrl=c=>hasG(c)?`https://www.openstreetmap.org/?mlat=${+c.lat}&mlon=${+c.lon}#map=19/${+c.lat}/${+c.lon}`:'https://www.openstreetmap.org/search?query='+encodeURIComponent(c.adresse||'');
-const norm=c=>{c.parcelles=c.parcelles||[];c.annotations=c.annotations||[];c.taches=c.taches||[];c.journal=c.journal||[];c.details=c.details||{};if(c.module==='entretien')c.prestations=(c.prestations||[]).map(p=>(p.faits=p.faits||{},p.sem=p.sem||[],p));return c};
+const norm=c=>{c.parcelles=c.parcelles||[];c.annotations=c.annotations||[];c.taches=c.taches||[];c.journal=c.journal||[];c.details=c.details||{};c.photos=c.photos||[];c.ops=c.ops||[];if(c.module==='entretien')c.prestations=(c.prestations||[]).map(p=>(p.faits=p.faits||{},p.sem=p.sem||[],delete p.m,delete p.pu,p));c.ops.forEach(o=>{delete o.montant});return c};
 D.chantiers.forEach(norm);D.chantiers.forEach(c=>lastJ[c.id]=JSON.stringify(c));lastR=JSON.stringify(D.reglages);
 
 /* ---------- mesures ---------- */
@@ -108,10 +108,10 @@ const popupC=c=>`<b>${esc(c.titre)}</b><br>${esc(c.client)} · ${ST[c.statut]}<b
 const savePref=()=>{try{localStorage.setItem(LS+'-carte',JSON.stringify(P))}catch(e){}};
 function setBase(){if(!V||!V.map)return;if(V.base)V.map.removeLayer(V.base);V.base=T[P.base]().addTo(V.map);V.base.bringToBack()}
 function setCad(){if(!V||!V.map)return;if(V.cad){V.map.removeLayer(V.cad);V.cad=null}if(P.cad)V.cad=T.cad().addTo(V.map)}
-const dpx=()=>innerWidth>=800?0:({min:140,mid:innerHeight*.44,max:innerHeight*.88}[dS]);
+const dpx=()=>0;
 function boundsOf(list){const b=L.latLngBounds([]);list.forEach(c=>{c.parcelles.forEach(p=>{try{b.extend(L.geoJSON(p.geom).getBounds())}catch(e){}});c.annotations.forEach(a=>a.pts.forEach(x=>b.extend(x)));if(hasG(c))b.extend([+c.lat,+c.lon])});return b}
-function fit(){if(!V||!V.map)return;const list=V.kind==='det'?[curC()]:D.chantiers.filter(c=>c.module===V.mod);let b=boundsOf(list);if(!b.isValid())b=boundsOf(D.chantiers.filter(hasG));
-const opt={paddingTopLeft:[innerWidth>=800?480:24,80],paddingBottomRight:[104,dpx()+24],maxZoom:18};
+function fit(){if(!V||!V.map)return;if(PZ){V.map.fitBounds(PZ,{paddingTopLeft:[24,24],paddingBottomRight:[104,24],maxZoom:19});PZ=null;return}const list=V.kind==='det'?[curC()]:D.chantiers.filter(c=>c.module===V.mod);let b=boundsOf(list);if(!b.isValid())b=boundsOf(D.chantiers.filter(hasG));
+const opt={paddingTopLeft:[24,24],paddingBottomRight:[104,30],maxZoom:18};
 if(!b.isValid())V.map.setView([46.6,2.4],6);else if(b.getNorthEast().equals(b.getSouthWest()))V.map.fitBounds(b.pad(.002),opt);else V.map.fitBounds(b,opt)}
 function annLayer(a){const col=a.couleur||'#d93025';let l;
 if(a.type==='note')l=L.marker(a.pts[0],{icon:L.divIcon({className:'nwrap',html:`<div class="note-ic" style="--nc:${esc(col)}">${esc(a.texte||'Note')}</div>`,iconSize:[0,0],iconAnchor:[0,0]})});
@@ -132,7 +132,7 @@ function drawTmp(){if(!V||!V.map)return;if(V.tmpL){V.tmpL.remove();V.tmpL=null}i
 if(tmp.pts.length>1)(tmp.type==='zone'&&tmp.pts.length>2?L.polygon(tmp.pts,{...o,fillOpacity:.15}):L.polyline(tmp.pts,o)).addTo(g);
 tmp.pts.forEach(x=>L.circleMarker(x,{radius:7,color:'#fff',weight:2,fillColor:'#d93025',fillOpacity:1,interactive:false}).addTo(g));g.addTo(V.map);V.tmpL=g}
 function teardown(){document.body.classList.remove('dmax');if(V&&V.map)V.map.remove();V=null;if(HM){HM.remove();HM=null}mode=null;tmp=null}
-function mount(kind,mod,key){teardown();$('#root').innerHTML=shell(kind,mod);V={key,kind,mod,map:null};if(!window.L)return;
+function mount(kind,mod,key){V={key,kind,mod,map:null};placeMap();if(!window.L)return;
 const m=L.map('mapbg',{zoomControl:false,attributionControl:false,maxZoom:20}).setView([46.6,2.4],6);V.map=m;setBase();setCad();
 m.on('click',onMapClick);
 m.on('popupopen',e=>{const el=e.popup.getElement();if(el)el.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',ev=>{ev.stopPropagation();ev.preventDefault();act(b)}))})}
@@ -175,7 +175,7 @@ ${homeEnt()}<h2 class="sec">Carte des chantiers</h2><div class="homemap" id="hom
 ${D.exemples?'<p class="note">Les chantiers affichés sont des exemples. <button class="link" data-act="clear-ex">Les effacer</button></p>':''}</main>`}
 function weekRows(y,w){return D.chantiers.filter(c=>c.module==='entretien').map(c=>({c,ps:c.prestations.filter(p=>p.sem.includes(w))})).filter(r=>r.ps.length)}
 function homeEnt(){if(!D.chantiers.some(c=>c.module==='entretien'))return '';const {y,w}=isoW(new Date()),rows=weekRows(y,w),t=rows.reduce((s,r)=>s+r.ps.length,0),d=rows.reduce((s,r)=>s+r.ps.filter(p=>p.faits[y+'-'+w]).length,0);
-return `<a class="card" href="#m-entretien" style="--mc:var(--entretien);margin-top:14px"><div class="ch"><span class="mod">${ICON.entretien}Entretien · semaine ${w}</span><span class="pill ${t&&d===t?'s-termine':'s-en_cours'}">${t?d+'/'+t+' faits':'Rien de prévu'}</span></div><h3>${t?t+' passage'+(t>1?'s':'')+' sur '+rows.length+' site'+(rows.length>1?'s':''):'Aucun passage cette semaine'}</h3><p class="meta">${esc(wLbl(y,w))} · ouvrir le planning</p></a>`}
+return `<a class="card" href="#m-entretien" style="--mc:var(--entretien);margin-top:14px"><div class="ch"><span class="mod">${ICON.entretien}Entretien · semaine ${w}</span><span class="pill ${t&&d===t?'s-termine':'s-en_cours'}">${t?d+'/'+t+' faits':'Rien de prévu'}</span></div><h3>${t?t+' passage'+(t>1?'s':'')+' sur '+rows.length+' site'+(rows.length>1?'s':''):'Aucun passage cette semaine'}</h3><p class="meta">${esc(wLbl(y,w))} · ouvrir le planning${(()=>{const n=D.chantiers.reduce((s,c)=>s+(c.ops||[]).filter(o=>o.statut!=='fait').length,0);return n?' · '+n+' opération'+(n>1?'s':'')+' spéciale'+(n>1?'s':'')+' à faire':''})()}</p></a>`}
 function nextWith(o){let x=o;for(let i=0;i<60;i++){x=wStep(x,1);if(weekRows(x.y,x.w).length)return x}return null}
 function dPlan(){const {y,w}=PW,rows=weekRows(y,w),all=new Set();D.chantiers.filter(c=>c.module==='entretien').forEach(c=>c.prestations.forEach(p=>p.sem.forEach(s=>all.add(s))));
 const ws=[...all].sort((a,b)=>a-b),lo=ws.length?Math.min(ws[0],w):w,hi=ws.length?Math.max(ws[ws.length-1],w):w,strip=[];
@@ -184,58 +184,94 @@ const t=rows.reduce((s,r)=>s+r.ps.length,0),d=rows.reduce((s,r)=>s+r.ps.filter(p
 return `<div class="wnav"><button class="btn sm" data-act="pwstep" data-n="-1" aria-label="Semaine précédente">‹</button><div style="text-align:center"><b>Semaine ${w}</b><div class="meta">${esc(wLbl(y,w))}</div></div><button class="btn sm" data-act="pwstep" data-n="1" aria-label="Semaine suivante">›</button></div>
 <div class="wstrip">${strip.join('')}</div>
 ${t?`<p class="tot" style="margin:0">${d}/${t} passages faits · environ ${fmtJ(Math.round(j*100)/100)} de travail</p>`+rows.map(r=>`<section class="panel"><div class="ph"><a href="#c-${esc(r.c.id)}"><h2>${esc(r.c.titre)}</h2></a><span class="meta">${r.ps.filter(p=>p.faits[y+'-'+w]).length}/${r.ps.length}</span></div><ul class="tasks">${r.ps.map(p=>`<li><label><input type="checkbox" data-act="pas" data-c="${esc(r.c.id)}" data-p="${esc(p.id)}" data-y="${y}" data-w="${w}" ${p.faits[y+'-'+w]?'checked':''}><span>${esc(String(p.des).split('\n')[0])}<small class="meta" style="display:block;text-decoration:none">${p.q!=null&&p.q!==''?esc(String(p.q).replace('.',','))+' '+esc(p.u||'')+' · ':''}${fmtJ(p.delai)}${p.hea?' · hors entretien annuel':''}</small></span></label></li>`).join('')}</ul></section>`).join(''):`<p class="empty">Aucun passage prévu cette semaine.${nx?` <button class="link" data-act="pw" data-y="${nx.y}" data-w="${nx.w}">Prochain : semaine ${nx.w}</button>`:''}</p>`}`}
-function dPrest(c){const {y,w}=isoW(new Date()),ps=c.prestations,mEA=ps.filter(p=>!p.hea).reduce((s,p)=>s+(+p.m||0),0),mH=ps.filter(p=>p.hea).reduce((s,p)=>s+(+p.m||0),0);
+function dPrest(c){const {y,w}=isoW(new Date()),ps=c.prestations,pc=passCount(c,y);
 return `<section class="panel"><h2>Prestations d’entretien <small>${y}</small></h2>${ps.length?`<p class="hint">Touchez une semaine pour marquer le passage comme fait. En rouge : semaine passée, pas encore cochée.</p><ul class="prl">${ps.map(p=>{const L=String(p.des).split('\n'),rest=L.slice(1).join('\n').trim();
-return `<li><div class="prh"><b>${p.n?esc(p.n)+'. ':''}${esc(L[0])}</b>${p.hea?'<span class="pill s-pause">Hors entretien annuel</span>':''}</div><span class="meta">${p.q!=null&&p.q!==''?esc(String(p.q).replace('.',','))+' '+esc(p.u||'')+' · ':''}${p.sem.length} passage${p.sem.length>1?'s':''}${p.delai?' · '+fmtJ(p.delai)+' par passage':''}${p.m?' · '+eur(p.m):''}</span>${rest?`<details><summary>Détails</summary><p class="notes">${esc(rest)}</p></details>`:''}
-<div class="wks">${p.sem.map(s=>{const f=p.faits[y+'-'+s];return `<button class="wk ${f?'ok':s<w?'late':s===w?'now':''}" data-act="pas" data-c="${esc(c.id)}" data-p="${esc(p.id)}" data-y="${y}" data-w="${s}" aria-pressed="${!!f}">S${s}${f?' ✓':''}</button>`}).join('')}<button class="wk x2" data-act="delpr" data-p="${esc(p.id)}" aria-label="Supprimer la prestation">×</button></div></li>`}).join('')}</ul><p class="tot">Montant annuel HT : ${eur(mEA)}${mH?' · hors entretien annuel : '+eur(mH):''}</p>`:'<p class="hint">Aucune prestation pour ce site.</p>'}
+return `<li><div class="prh"><b>${p.n?esc(p.n)+'. ':''}${esc(L[0])}</b>${p.hea?'<span class="pill s-pause">Hors entretien annuel</span>':''}</div><span class="meta">${p.q!=null&&p.q!==''?esc(String(p.q).replace('.',','))+' '+esc(p.u||'')+' · ':''}${p.sem.length} passage${p.sem.length>1?'s':''}${p.delai?' · '+fmtJ(p.delai)+' par passage':''}</span>${rest?`<details><summary>Détails</summary><p class="notes">${esc(rest)}</p></details>`:''}
+<div class="wks">${p.sem.map(s=>{const f=p.faits[y+'-'+s];return `<button class="wk ${f?'ok':s<w?'late':s===w?'now':''}" data-act="pas" data-c="${esc(c.id)}" data-p="${esc(p.id)}" data-y="${y}" data-w="${s}" aria-pressed="${!!f}">S${s}${f?' ✓':''}</button>`}).join('')}<button class="wk x2" data-act="delpr" data-p="${esc(p.id)}" aria-label="Supprimer la prestation">×</button></div></li>`}).join('')}</ul><p class="tot">${pc.d}/${pc.t} passages faits en ${y}</p>`:'<p class="hint">Aucune prestation pour ce site.</p>'}
 <form class="addt" data-form="prest" style="flex-wrap:wrap"><input name="des" placeholder="Nouvelle prestation (ex. tonte)" aria-label="Prestation" required style="flex:1 1 100%"><input name="sem" placeholder="Semaines : 30, 39" aria-label="Semaines" required style="flex:1"><input name="delai" placeholder="Jours" inputmode="decimal" aria-label="Durée par passage en jours" style="width:80px;flex:none"><button>Ajouter</button></form></section>`}
 function listHTML(k){const s=q.toLowerCase();const cs=D.chantiers.filter(c=>c.module===k&&(filt==='tous'||c.statut===filt)&&(!s||(c.titre+' '+c.client+' '+c.adresse+' '+c.equipe).toLowerCase().includes(s))).sort(sorter);
 return cs.length?`<div class="list">${cs.map(card).join('')}</div>`:'<p class="empty">Aucun chantier ici. Touchez « Nouveau » pour en créer un.</p>'}
-function shell(kind,mod){const det=kind==='det';
-return `<div id="mapbg" class="mapbg">${window.L?'':'<p class="nomap">Carte indisponible : vérifiez la connexion internet.</p>'}</div>
-<div class="topbar" style="--mc:var(--${mod})"><a class="fbtn round" href="${det?'#m-'+mod:'#'}" aria-label="Retour">${ICON.back}</a><div class="fbtn ttl"><span class="tic">${ICON[mod]}</span><span id="ttl"></span></div></div>
-<div class="tools" style="--mc:var(--${mod})"><button class="tool" data-act="base" id="tb-base">Photo</button><button class="tool" data-act="cad" id="tb-cad">Cadastre</button>
+const TI={fiche:sv('<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>'),
+carte:sv('<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'),
+photos:sv('<path d="M4 7h4l2-3h4l2 3h4v12H4z"/><circle cx="12" cy="13" r="3.5"/>'),
+ops:sv('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>'),
+prest:sv('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 15l2 2 4-4"/>'),
+plan:sv('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+liste:sv('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>')};
+function tabsFor(kind,mod){const t=(k,l)=>({k,l,i:TI[k]});
+if(kind==='mod')return mod==='entretien'?[t('plan','Planning'),t('liste','Sites'),t('ops','Opérations'),t('carte','Carte')]:[t('liste','Chantiers'),t('ops','Opérations'),t('carte','Carte')];
+return mod==='entretien'?[t('prest','Passages'),t('carte','Carte'),t('photos','Photos'),t('ops','Opérations'),t('fiche','Infos')]:[t('fiche','Fiche'),t('carte','Carte'),t('photos','Photos'),t('ops','Opérations')]}
+let CUR={},PZ=null,PMODE=null,LASTKEY=null,OF='ouv';
+const goTab=t=>{location.hash=(CUR.kind==='det'?'c-'+CUR.c.id:'m-'+CUR.mod)+'--'+t};
+function frame(kind,mod,c,tabs,tab){let sub='';
+if(kind==='mod'){const cs=D.chantiers.filter(x=>x.module===mod);if(mod==='entretien'){const pc=cs.reduce((a,x)=>{const k=passCount(x,PW.y);return{t:a.t+k.t,d:a.d+k.d}},{t:0,d:0});sub=`${cs.length} site${cs.length>1?'s':''} · ${pc.d}/${pc.t} passages faits en ${PW.y}`}else sub=`${cs.length} chantier${cs.length>1?'s':''} · ${cs.filter(x=>x.statut==='en_cours').length} en cours`}
+else sub=c.adresse||c.client||'';
+const base=kind==='det'?'c-'+c.id:'m-'+mod;
+return `<div class="vtop" style="--mc:var(--${mod})"><header class="vh"><a class="vback" href="${kind==='det'?'#m-'+mod+(mod==='entretien'?'--liste':''):'#'}">${ICON.back}${kind==='det'?esc(lbl(mod)):'Accueil'}</a>
+<div class="vt"><span class="vic">${ICON[mod]}</span><div><h1>${esc(c?c.titre:lbl(mod))}</h1><p>${esc(sub)}</p></div>${kind==='mod'?`<button class="vnew" data-act="new" data-m="${mod}">${ICON.plus}${mod==='entretien'?'Site':'Nouveau'}</button>`:''}</div></header>
+<nav class="vtabs" role="tablist">${tabs.map(x=>`<a role="tab" class="vtab ${x.k===tab?'on':''}" href="#${esc(base)}--${x.k}" aria-selected="${x.k===tab}">${x.i}<span>${x.l}</span></a>`).join('')}</nav></div>`}
+function mapShell(det,mod){return `<div class="mapfull" id="mapfull" style="--mc:var(--${mod})"><div id="mapbg" class="mapbg">${window.L?'':'<p class="nomap">Carte indisponible : vérifiez la connexion internet.</p>'}</div>
+<div class="tools"><button class="tool" data-act="base" id="tb-base">Photo</button><button class="tool" data-act="cad" id="tb-cad">Cadastre</button>
 ${det?'<span class="tsep"></span>'+[['parcelle','Parcelle'],['note','Note'],['ligne','Ligne'],['zone','Zone'],['pin','Placer']].map(([m,l])=>`<button class="tool" data-act="mode" data-v="${m}">${l}</button>`).join(''):''}
-<button class="tool" data-act="me">Me situer</button></div>
-<div id="hint" class="hintbar" hidden></div>
-<div class="drawer" id="drawer" data-s="${dS}" style="--mc:var(--${mod})"><button class="handle" data-act="drawer" aria-label="Agrandir ou réduire"><i></i></button><div class="dc" id="dc"></div></div>`}
+<button class="tool" data-act="me">Me situer</button></div><div id="hint" class="hintbar" hidden></div><p class="mattr">© OpenStreetMap · Cadastre et photos © IGN</p></div>`}
+function placeMap(){const f=$('#mapfull'),t=$('.vtop');if(f&&t)f.style.top=Math.round(t.getBoundingClientRect().bottom)+'px';if(V&&V.map)V.map.invalidateSize()}
 const ATTR='<p class="attr">Fond de carte © contributeurs OpenStreetMap · Cadastre et photos aériennes © IGN</p>';
-function dMod(k){const cs=D.chantiers.filter(c=>c.module===k),e=cs.filter(c=>c.statut==='en_cours').length;
-if(k==='entretien'){const pc=cs.reduce((a,c)=>{const x=passCount(c,PW.y);return{t:a.t+x.t,d:a.d+x.d}},{t:0,d:0});return `<div class="dh"><div><h2>${esc(lbl(k))}</h2><p class="sub">${cs.length} site${cs.length>1?'s':''} · ${pc.d}/${pc.t} passages faits en ${PW.y}</p></div><button class="btn primary" data-act="new" data-m="${k}">${ICON.plus}Site</button></div><div class="seg" style="grid-template-columns:1fr 1fr"><button class="${ET==='plan'?'on':''}" data-act="et" data-v="plan">Planning</button><button class="${ET==='sites'?'on':''}" data-act="et" data-v="sites">Sites</button></div>${ET==='plan'?dPlan():`<div id="lst">${listHTML(k)}</div>`}${ATTR}`}
-return `<div class="dh"><div><h2>${esc(lbl(k))}</h2><p class="sub">${cs.length} chantier${cs.length>1?'s':''} · ${e} en cours</p></div><button class="btn primary" data-act="new" data-m="${k}">${ICON.plus}Nouveau</button></div>
-<div class="tools2" style="display:grid;gap:10px"><input id="q" type="search" placeholder="Rechercher un chantier, un client…" value="${esc(q)}" aria-label="Rechercher"><div class="chips">${['tous',...Object.keys(ST)].map(s=>`<button class="chip ${filt===s?'on':''}" data-act="filt" data-v="${s}">${s==='tous'?'Tous':ST[s]}</button>`).join('')}</div></div><div id="lst">${listHTML(k)}</div>${ATTR}`}
+function dList(k){return `<div style="display:grid;gap:10px"><input id="q" type="search" placeholder="Rechercher un chantier, un client…" value="${esc(q)}" aria-label="Rechercher"><div class="chips">${['tous',...Object.keys(ST)].map(s=>`<button class="chip ${filt===s?'on':''}" data-act="filt" data-v="${s}">${s==='tous'?'Tous':ST[s]}</button>`).join('')}</div></div><div id="lst">${listHTML(k)}</div>`}
 function row(l,v){return v?`<div><dt>${l}</dt><dd>${v}</dd></div>`:''}
-function dDet(c){const p=prog(c),h=hrs(c),hp=+c.heuresPrevues||0,n=c.taches.filter(t=>t.done).length,col=COL[c.module];
+function phThumb(s,a,attrs){const src=phSrc(s);return (src||String(s).startsWith('ph:'))?`<button class="pht" data-act="${a}" ${attrs}><img data-ph="${esc(s)}" ${src?`src="${esc(src)}"`:''} alt="Photo du chantier" loading="lazy"></button>`:''}
+function dPhotos(c){const ps=[...c.photos].reverse(),jp=c.journal.flatMap(j=>(j.photos||[]).map(s=>({s,d:j.date}))),op=c.ops.flatMap(o=>(o.photos||[]).map(s=>({s,o:o.titre})));
+return `<section class="panel"><div class="ph"><h2>Photos du site <small>${c.photos.length}</small></h2><label class="btn primary">${ICON.plus}Ajouter<input type="file" accept="image/*" multiple data-upl="site" hidden></label></div>
+${ps.length?`<div class="gal">${ps.map(p=>`<figure>${phThumb(p.src,'zph','data-id="'+esc(p.id)+'"')}<figcaption>${p.legende?esc(p.legende)+'<br>':''}<span>${esc(fd(p.date))}${p.par?' · '+esc(String(p.par).split('@')[0]):''}</span></figcaption></figure>`).join('')}</div>`:'<p class="hint">Ajoutez ici les photos du site : état des lieux, avant / après, points d’attention. Touchez une photo pour l’agrandir ou lui donner une légende.</p>'}</section>
+${jp.length?`<section class="panel"><h2>Photos du journal <small>${jp.length}</small></h2><div class="gal">${jp.map(x=>`<figure>${phThumb(x.s,'zoom','data-src="'+esc(x.s)+'"')}<figcaption><span>${esc(fd(x.d))}</span></figcaption></figure>`).join('')}</div></section>`:''}
+${op.length?`<section class="panel"><h2>Photos des opérations <small>${op.length}</small></h2><div class="gal">${op.map(x=>`<figure>${phThumb(x.s,'zoom','data-src="'+esc(x.s)+'"')}<figcaption><span>${esc(x.o)}</span></figcaption></figure>`).join('')}</div></section>`:''}`}
+const OST={afaire:'À faire',encours:'En cours',fait:'Faite'},OCL={afaire:'s-prevu',encours:'s-en_cours',fait:'s-termine'},OOR={afaire:0,encours:0,fait:1};
+const opSort=(a,b)=>(OOR[a.statut]-OOR[b.statut])||String(a.date||'9').localeCompare(String(b.date||'9'));
+function opCard(o,c,site){const ids=`data-c="${esc(c.id)}" data-o="${esc(o.id)}"`;
+return `<article class="panel op" style="--mc:var(--${c.module})"><div class="ch"><span class="pill ${OCL[o.statut]||'s-prevu'}">${OST[o.statut]||''}</span><span class="meta">${o.date?esc(fdl(o.date)):'Sans date'}</span></div>
+${site?`<a class="mod" href="#c-${esc(c.id)}--ops">${ICON[c.module]}${esc(c.titre)}</a>`:''}<h3>${esc(o.titre)}</h3>${o.desc?`<p class="notes" style="margin:0">${esc(o.desc)}</p>`:''}
+${[o.heures?fmtH(o.heures):'',o.par?'par '+esc(String(o.par).split('@')[0]):''].filter(Boolean).length?`<p class="meta" style="margin:0">${[o.heures?fmtH(o.heures):'',o.par?'par '+esc(String(o.par).split('@')[0]):''].filter(Boolean).join(' · ')}</p>`:''}
+${(o.photos||[]).length?`<div class="phr">${o.photos.map(s=>phThumb(s,'zoom','data-src="'+esc(s)+'"')).join('')}</div>`:''}
+<div class="seg">${Object.keys(OST).map(k=>`<button class="${o.statut===k?'on':''}" data-act="opst" ${ids} data-v="${k}">${OST[k]}</button>`).join('')}</div>
+<div class="hb"><button class="btn sm" data-act="opedit" ${ids}>Modifier</button><button class="btn sm danger" data-act="opdel" ${ids}>Supprimer</button></div></article>`}
+function dOps(c){const os=[...c.ops].sort(opSort);return `<div><h2 class="sec" style="margin:0">Opérations spéciales</h2><p class="hint" style="margin:4px 0 0">Interventions hors planning : arbre tombé, nettoyage après tempête, demande du client…</p></div><button class="btn primary wide" data-act="opnew" data-c="${esc(c.id)}">${ICON.plus}Nouvelle opération spéciale</button>${os.length?os.map(o=>opCard(o,c,false)).join(''):'<p class="empty">Aucune opération spéciale pour le moment.</p>'}`}
+function dOpsMod(k){const all=D.chantiers.filter(c=>c.module===k).flatMap(c=>c.ops.map(o=>({o,c}))),ok=x=>OF==='tous'||(OF==='ouv'?x.o.statut!=='fait':x.o.statut==='fait'),f=all.filter(ok).sort((a,b)=>opSort(a.o,b.o));
+return `<div class="chips">${[['ouv','À faire'],['fait','Faites'],['tous','Toutes']].map(([v,l])=>`<button class="chip ${OF===v?'on':''}" data-act="of" data-v="${v}">${l} (${all.filter(x=>v==='tous'||(v==='ouv'?x.o.statut!=='fait':x.o.statut==='fait')).length})</button>`).join('')}</div>${f.length?f.map(x=>opCard(x.o,x.c,true)).join(''):`<p class="empty">Aucune opération ici. Pour en créer une, ouvrez un ${k==='entretien'?'site':'chantier'} puis l’onglet Opérations.</p>`}`}
+function dFiche(c){const p=prog(c),h=hrs(c),hp=+c.heuresPrevues||0,n=c.taches.filter(t=>t.done).length,col=COL[c.module];
 const tel=c.tel?`${esc(c.tel)} · <a href="tel:${esc(c.tel.replace(/[^\d+]/g,''))}">Appeler</a>`:'';
 const det=FIELDS[c.module].map(f=>row(esc(f.l),esc(c.details[f.k]))).join('');
 const tot=c.parcelles.reduce((s,x)=>s+(+x.contenance||0),0);
 const J=[...c.journal].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-return `<div class="dh"><div><h1>${esc(c.titre)}</h1><p class="sub">${esc(c.client)}${c.adresse?' · '+esc(c.adresse):''}</p></div></div>
-<div class="seg" role="group" aria-label="Statut">${Object.keys(ST).map(s=>`<button class="${c.statut===s?'on':''}" data-act="status" data-v="${s}">${ST[s]}</button>`).join('')}</div>
+return `<div class="seg" role="group" aria-label="Statut">${Object.keys(ST).map(s=>`<button class="${c.statut===s?'on':''}" data-act="status" data-v="${s}">${ST[s]}</button>`).join('')}</div>
 <section class="panel stats"><div><b>${p} %</b><span>avancement</span><div class="bar"><i style="width:${p}%"></i></div></div><div><b>${fmtH(h)}${hp?' / '+fmtH(hp):''}</b><span>${hp?'réalisées / prévues':'heures réalisées'}</span><div class="bar ${hp&&h>hp?'over':''}"><i style="width:${hp?Math.min(100,h*100/hp):0}%"></i></div></div></section>
 <section class="panel"><div class="ph"><h2>Parcelles cadastrales</h2><button class="btn sm" data-act="mode" data-v="parcelle">${ICON.plus}Parcelle</button></div>
-${c.parcelles.length?`<ul class="plist">${c.parcelles.map((x,i)=>`<li><i class="dot" style="background:${col}"></i><button class="lk" data-act="zoomp" data-i="${i}"><b>Section ${esc(x.section)} n° ${esc(x.numero)}</b><span>${esc(x.commune)} · ${x.estimee?'≈ ':''}${fmtA(+x.contenance||0)}</span></button><button class="x" data-act="delp" data-i="${i}" aria-label="Retirer la parcelle">×</button></li>`).join('')}</ul><p class="tot">Surface cadastrale totale : ${fmtA(tot)}</p>`:'<p class="hint">Touchez « Parcelle » puis les parcelles du chantier sur la carte.</p>'}</section>
+${c.parcelles.length?`<ul class="plist">${c.parcelles.map((x,i)=>`<li><i class="dot" style="background:${col}"></i><button class="lk" data-act="zoomp" data-i="${i}"><b>Section ${esc(x.section)} n° ${esc(x.numero)}</b><span>${esc(x.commune)} · ${x.estimee?'≈ ':''}${fmtA(+x.contenance||0)}</span></button><button class="x" data-act="delp" data-i="${i}" aria-label="Retirer la parcelle">×</button></li>`).join('')}</ul><p class="tot">Surface cadastrale totale : ${fmtA(tot)}</p>`:'<p class="hint">Touchez « Parcelle » : la carte s’ouvre, puis touchez les parcelles du site.</p>'}</section>
 <section class="panel"><div class="ph"><h2>Annotations</h2><button class="btn sm" data-act="mode" data-v="note">${ICON.plus}Note</button></div>
-${c.annotations.length?`<ul class="plist">${c.annotations.map(a=>`<li><i class="dot" style="background:${esc(a.couleur)}"></i><button class="lk" data-act="zooma" data-a="${esc(a.id)}"><b>${esc(a.texte||{note:'Note',ligne:'Ligne',zone:'Zone'}[a.type])}</b><span>${{note:'Note',ligne:'Ligne',zone:'Zone'}[a.type]}${annMeasure(a)?' · '+annMeasure(a):''}</span></button><button class="x" data-act="delann" data-a="${esc(a.id)}" aria-label="Supprimer l’annotation">×</button></li>`).join('')}</ul>`:'<p class="hint">Avec les outils Note, Ligne et Zone, dessinez sur la carte : massif, haie à planter, arbre à abattre, accès…</p>'}</section>
-<section class="panel"><h2>Localisation</h2><p class="hint" style="margin-bottom:10px">${hasG(c)?'GPS '+(+c.lat)+', '+(+c.lon):'Chantier pas encore placé : utilisez « Placer » ou le bouton ci-dessous.'}</p><div class="hb"><button class="btn sm" data-act="geo-addr">Localiser l’adresse</button><a class="btn sm" href="${esc(osmUrl(c))}" target="_blank" rel="noopener">Ouvrir OpenStreetMap</a></div></section>
-<section class="panel"><h2>Informations</h2><dl class="info">${row('Téléphone',tel)}${row('Dates',fd(c.debut)+' → '+fd(c.fin))}${row('Équipe',esc(c.equipe))}${det}</dl>${c.notes?`<p class="notes">${esc(c.notes)}</p>`:''}</section>
-${c.module==='entretien'?dPrest(c):''}<section class="panel"><h2>Tâches <small>${n}/${c.taches.length}</small></h2><ul class="tasks">${c.taches.map((t,i)=>`<li><label><input type="checkbox" data-act="task" data-i="${i}" ${t.done?'checked':''}><span>${esc(t.t)}</span></label><button class="x" data-act="deltask" data-i="${i}" aria-label="Supprimer la tâche">×</button></li>`).join('')}</ul>
+${c.annotations.length?`<ul class="plist">${c.annotations.map(a=>`<li><i class="dot" style="background:${esc(a.couleur)}"></i><button class="lk" data-act="zooma" data-a="${esc(a.id)}"><b>${esc(a.texte||{note:'Note',ligne:'Ligne',zone:'Zone'}[a.type])}</b><span>${{note:'Note',ligne:'Ligne',zone:'Zone'}[a.type]}${annMeasure(a)?' · '+annMeasure(a):''}</span></button><button class="x" data-act="delann" data-a="${esc(a.id)}" aria-label="Supprimer l’annotation">×</button></li>`).join('')}</ul>`:'<p class="hint">Dans l’onglet Carte, les outils Note, Ligne et Zone servent à dessiner : massif, haie, arbre à abattre, accès…</p>'}</section>
+<section class="panel"><h2>Localisation</h2><p class="hint" style="margin-bottom:10px">${hasG(c)?'GPS '+(+c.lat)+', '+(+c.lon):'Pas encore placé sur la carte : utilisez « Placer » dans l’onglet Carte, ou le bouton ci-dessous.'}</p><div class="hb"><button class="btn sm" data-act="geo-addr">Localiser l’adresse</button><a class="btn sm" href="${esc(osmUrl(c))}" target="_blank" rel="noopener">Ouvrir OpenStreetMap</a></div></section>
+<section class="panel"><h2>Informations</h2><dl class="info">${row('Adresse',esc(c.adresse))}${row('Téléphone',tel)}${c.module==='entretien'?'':row('Dates',fd(c.debut)+' → '+fd(c.fin))}${row('Équipe',esc(c.equipe))}${det}</dl>${c.notes?`<p class="notes">${esc(c.notes)}</p>`:''}</section>
+<section class="panel"><h2>Tâches <small>${n}/${c.taches.length}</small></h2><ul class="tasks">${c.taches.map((t,i)=>`<li><label><input type="checkbox" data-act="task" data-i="${i}" ${t.done?'checked':''}><span>${esc(t.t)}</span></label><button class="x" data-act="deltask" data-i="${i}" aria-label="Supprimer la tâche">×</button></li>`).join('')}</ul>
 <form class="addt" data-form="task"><input name="t" placeholder="Ajouter une tâche" aria-label="Nouvelle tâche"><button>Ajouter</button></form></section>
-<section class="panel"><div class="ph"><h2>Journal de chantier</h2><button class="btn sm" data-act="journal">${ICON.plus}Entrée</button></div>
-${J.length?J.map(j=>`<article class="je"><div class="jh"><b>${esc(fdl(j.date))}</b><span>${esc(j.auteur)}${j.auteur?' · ':''}${fmtH(j.heures)}</span></div>${j.note?`<p>${esc(j.note)}</p>`:''}${(j.photos||[]).length?`<div class="phr">${j.photos.map(s=>{const src=phSrc(s);return (src||String(s).startsWith('ph:'))?`<button data-act="zoom" data-src="${esc(s)}"><img data-ph="${esc(s)}" ${src?`src="${esc(src)}"`:''} alt="Photo du chantier" loading="lazy"></button>`:''}).join('')}</div>`:''}<button class="link danger" data-act="delj" data-j="${esc(j.id)}">Supprimer</button></article>`).join(''):'<p class="hint">Notez ici chaque journée : heures, travaux faits, photos.</p>'}</section>
-<div class="actions"><button class="btn" data-act="edit">Modifier</button><button class="btn" data-act="dup">Dupliquer</button><button class="btn danger" data-act="del">Supprimer</button></div>${ATTR}`}
+<section class="panel"><div class="ph"><h2>Journal</h2><button class="btn sm" data-act="journal">${ICON.plus}Entrée</button></div>
+${J.length?J.map(j=>`<article class="je"><div class="jh"><b>${esc(fdl(j.date))}</b><span>${esc(j.auteur)}${j.auteur?' · ':''}${fmtH(j.heures)}</span></div>${j.note?`<p>${esc(j.note)}</p>`:''}${(j.photos||[]).length?`<div class="phr">${j.photos.map(s=>phThumb(s,'zoom','data-src="'+esc(s)+'"')).join('')}</div>`:''}<button class="link danger" data-act="delj" data-j="${esc(j.id)}">Supprimer</button></article>`).join(''):'<p class="hint">Notez ici chaque journée : heures, travaux faits, photos.</p>'}</section>
+<div class="actions"><button class="btn" data-act="edit">Modifier</button><button class="btn" data-act="dup">Dupliquer</button><button class="btn danger" data-act="del">Supprimer</button></div>`}
+function content(kind,mod,c,tab){if(kind==='mod')return tab==='plan'?dPlan():tab==='ops'?dOpsMod(mod):dList(mod);return tab==='prest'?dPrest(c):tab==='photos'?dPhotos(c):tab==='ops'?dOps(c):dFiche(c)}
 
 function render(){if(authState==='wait'||authState==='login'){teardown();document.body.classList.remove('mapview');$('#root').innerHTML=authState==='wait'?'<div class="login"><p class="lwait">Connexion…</p></div>':vLogin();return}
-const h=location.hash.slice(1);let kind='home',mod=null,c=null;
-if(h.startsWith('m-')&&KEYS.includes(h.slice(2))){kind='mod';mod=h.slice(2)}
-else if(h.startsWith('c-')&&(c=find(h.slice(2)))){kind='det';mod=c.module}
-document.body.classList.toggle('mapview',kind!=='home');
-if(kind==='home'){teardown();$('#root').innerHTML=vHome();initHomeMap();if(h!==last)window.scrollTo(0,0);last=h;return}
-const key=kind+':'+(c?c.id:mod),fresh=!V||V.key!==key;
-if(fresh){if(kind==='mod')q='';mount(kind,mod,key);geoMissing(c?[c]:D.chantiers.filter(x=>x.module===mod))}
-$('#ttl').textContent=c?c.titre:lbl(mod);document.body.classList.toggle('dmax',dS==='max'&&innerWidth<800);
-$('#dc').innerHTML=c?dDet(c):dMod(mod);
-drawOverlays();updTools();if(fresh){fit();$('#dc').scrollTop=0}loadPhotos();const wc=$('#wcur');if(wc){const st=wc.parentElement;st.scrollLeft=wc.offsetLeft-st.offsetLeft-st.clientWidth/2+wc.clientWidth/2}last=h}
+const h=location.hash.slice(1),[b0,t0]=h.split('--');let kind='home',mod=null,c=null;
+if(b0.startsWith('m-')&&KEYS.includes(b0.slice(2))){kind='mod';mod=b0.slice(2)}
+else if(b0.startsWith('c-')&&(c=find(b0.slice(2)))){kind='det';mod=c.module}
+if(kind==='home'){CUR={kind};document.body.classList.remove('mapview');teardown();$('#root').innerHTML=vHome();initHomeMap();if(h!==last)window.scrollTo(0,0);last=h;LASTKEY=null;return}
+const tabs=tabsFor(kind,mod),tab=(tabs.find(x=>x.k===t0)||tabs[0]).k;CUR={kind,mod,c,tab};
+const key=kind+':'+(c?c.id:mod)+':'+tab;
+if(tab==='carte'){document.body.classList.add('mapview');
+if(!V||V.key!==key){teardown();window.scrollTo(0,0);$('#root').innerHTML=frame(kind,mod,c,tabs,tab)+mapShell(kind==='det',mod);mount(kind,mod,key);drawOverlays();updTools();fit();if(PMODE&&V.map){const pm=PMODE;PMODE=null;setMode(pm)}geoMissing(c?[c]:D.chantiers.filter(x=>x.module===mod))}
+else{$('.vtop').outerHTML=frame(kind,mod,c,tabs,tab);placeMap();drawOverlays();updTools()}
+LASTKEY=key;last=h;return}
+document.body.classList.remove('mapview');const y=window.scrollY,keep=key===LASTKEY;teardown();
+if(kind==='mod'&&b0!==String(last).split('--')[0])q='';
+$('#root').innerHTML=frame(kind,mod,c,tabs,tab)+`<main class="wrap tabc" style="--mc:var(--${mod})">${content(kind,mod,c,tab)}${ATTR}</main>`;
+loadPhotos();const wc=$('#wcur');if(wc){const st=wc.parentElement;st.scrollLeft=wc.offsetLeft-st.offsetLeft-st.clientWidth/2+wc.clientWidth/2}
+window.scrollTo(0,keep?y:0);LASTKEY=key;last=h;if(c&&!hasG(c))geoMissing([c])}
 
 /* ---------- formulaires ---------- */
 const inp=(n,l,v,t='text',req)=>`<label class="f"><span>${l}</span><input name="${n}" type="${t}" value="${esc(v)}" ${t==='number'?'inputmode="decimal" step="any" min="0"':''} ${req?'required':''}></label>`;
@@ -259,6 +295,13 @@ return `<form class="sh-in" data-form="ann"><div class="sh-h"><h2>${nm}</h2><but
 ${type!=='note'?`<p class="hint">${type==='ligne'?'Longueur : '+fmtL(len(pts)):'Surface : '+fmtA(area(pts))+' · périmètre '+fmtL(len([...pts,pts[0]]))}</p>`:''}
 <label class="f"><span>${type==='note'?'Texte de la note':'Nom (ex. haie à planter, zone à broyer)'}</span><textarea name="texte" rows="3" ${type==='note'?'required':''}></textarea></label>
 <div class="f"><span>Couleur</span><div class="cols">${COLS.map(([h,n],i)=>`<label class="col"><input type="radio" name="couleur" value="${h}" ${i===0?'checked':''}><i style="background:${h}"></i>${n}</label>`).join('')}</div></div>
+<button class="btn primary wide">Enregistrer</button></form>`}
+function fOp(c,o){const e=o||{statut:'afaire',date:iso()};return `<form class="sh-in" data-form="op"><div class="sh-h"><h2>${o?'Modifier l’opération':'Opération spéciale'}</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div><p class="hint" style="margin:0">${esc(c.titre)}</p>
+<input type="hidden" name="c" value="${esc(c.id)}"><input type="hidden" name="o" value="${esc(e.id||'')}">
+${inp('titre','Opération (ex. évacuation arbre tombé)',e.titre,'text',1)}<div class="two">${inp('date','Date prévue',e.date,'date')}<label class="f"><span>Statut</span><select name="statut">${Object.keys(OST).map(k=>`<option value="${k}" ${e.statut===k?'selected':''}>${OST[k]}</option>`).join('')}</select></label></div>
+<label class="f"><span>Description, consignes</span><textarea name="desc" rows="4">${esc(e.desc)}</textarea></label>
+${inp('heures','Heures',e.heures,'number')}
+<label class="f"><span>${o&&(o.photos||[]).length?'Ajouter des photos ('+o.photos.length+' déjà)':'Photos'}</span><input type="file" name="ph" accept="image/*" multiple></label>
 <button class="btn primary wide">Enregistrer</button></form>`}
 function fJournal(){let a='';try{a=localStorage.getItem(LS+'-auteur')||''}catch(e){}if(!a&&cloud&&cloud.user&&cloud.user.email)a=cloud.user.email.split('@')[0];
 return `<form class="sh-in" data-form="journal"><div class="sh-h"><h2>Entrée du journal</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div>
@@ -287,15 +330,15 @@ function flush(){if(!cloud||!cloud.user||!cloud.ready)return;const {F,db}=cloud,
 PEND.up.splice(0).forEach(id=>{const c=find(id);if(c)F.setDoc(F.doc(db,'chantiers',id),{data:JSON.stringify(c),maj:Date.now(),par}).catch(fail)});
 PEND.del.splice(0).forEach(id=>F.deleteDoc(F.doc(db,'chantiers',id)).catch(fail));
 if(PEND.reg){PEND.reg=false;F.setDoc(F.doc(db,'app','reglages'),{data:JSON.stringify(D.reglages)}).catch(fail)}persistPend()}
-function liveRender(){const a=document.activeElement;if(a&&a.closest&&a.closest('#dc')&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){rq=true;return}render()}
+function liveRender(){const a=document.activeElement;if(a&&a.closest&&a.closest('.tabc,#sheet')&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){rq=true;return}render()}
 document.addEventListener('focusout',()=>{if(rq){rq=false;setTimeout(render,0)}});
 function readLocalOnly(){try{const l=JSON.parse(localStorage.getItem(LS));if(l&&!l.exemples&&Array.isArray(l.chantiers)&&l.chantiers.length)return l.chantiers.map(norm)}catch(e){}return null}
 function listen(){const {F,db}=cloud;let first=true;
 cloud.unsub.push(F.onSnapshot(F.collection(db,'chantiers'),snap=>{const remote={};
-snap.forEach(d=>{try{const c=norm(JSON.parse(d.data().data));remote[c.id]=c}catch(e){}});
+const dirty=[];snap.forEach(d=>{try{const raw=d.data().data,c=norm(JSON.parse(raw));remote[c.id]=c;if(/"(pu|m|montant)":/.test(raw))dirty.push(c.id)}catch(e){}});
 if(first){first=false;if(snap.empty&&!PEND.up.length){const loc=readLocalOnly();if(loc)loc.forEach(c=>{remote[c.id]=c;PEND.up.push(c.id)})}}
 PEND.up.forEach(id=>{const c=D.chantiers.find(x=>x.id===id)||remote[id];if(c)remote[id]=c});PEND.del.forEach(id=>{delete remote[id]});
-D.chantiers=Object.values(remote);lastJ={};D.chantiers.forEach(c=>lastJ[c.id]=JSON.stringify(c));lsSet();cloud.ready=true;flush();liveRender()},
+D.chantiers=Object.values(remote);lastJ={};D.chantiers.forEach(c=>lastJ[c.id]=JSON.stringify(c));dirty.forEach(id=>{if(!PEND.up.includes(id))PEND.up.push(id)});lsSet();cloud.ready=true;flush();liveRender()},
 ()=>toast('Accès aux données refusé : vérifiez les règles Firestore')));
 cloud.unsub.push(F.onSnapshot(F.doc(db,'app','reglages'),d=>{if(d.exists()){if(!PEND.reg)try{D.reglages=JSON.parse(d.data().data);lastR=JSON.stringify(D.reglages)}catch(e){}}else PEND.reg=true;lsSet();flush();liveRender()},()=>{}))}
 async function startCloud(){try{const B='https://www.gstatic.com/firebasejs/10.14.1/';
@@ -309,9 +352,10 @@ const phSrc=s=>String(s).startsWith('ph:')?(safe(PH[String(s).slice(3)])||''):sa
 function loadPhotos(){if(!cloud||!cloud.user)return;document.querySelectorAll('img[data-ph^="ph:"]').forEach(async im=>{if(im.getAttribute('src'))return;const id=im.dataset.ph.slice(3);try{if(!PH[id]){const d=await cloud.F.getDoc(cloud.F.doc(cloud.db,'photos',id));if(d.exists())PH[id]=d.data().data}if(safe(PH[id]))im.src=PH[id]}catch(e){}})}
 function delPhotos(list){if(!cloud||!cloud.user)return;(list||[]).forEach(s=>{if(String(s).startsWith('ph:'))cloud.F.deleteDoc(cloud.F.doc(cloud.db,'photos',String(s).slice(3))).catch(()=>{})})}
 function vLogin(){return `<div class="login"><div class="lcard"><p class="date">Suivi de chantiers</p><h1>${esc(D.reglages.entreprise)}</h1><form data-form="login" class="lform"><label class="f"><span>E-mail</span><input name="email" type="email" autocomplete="username" autocapitalize="off" required></label><label class="f"><span>Mot de passe</span><input name="pw" type="password" autocomplete="current-password" required></label><button class="btn primary wide">Se connecter</button><p class="hint">Votre compte est créé par le responsable de l’entreprise.</p></form></div></div>`}
+async function storePhoto(file,c){const d=await photo(file);if(cloud&&cloud.user){const id=uid()+uid();PH[id]=d;cloud.F.setDoc(cloud.F.doc(cloud.db,'photos',id),{data:d,chantier:c.id,par:cloud.user.email||''}).catch(fail);return 'ph:'+id}return d}
 async function photo(file){const b=await shrink(file,1000,.6);return await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(b)})}
 function shrink(file,max,qu){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height)),cv=document.createElement('canvas');cv.width=Math.round(im.width*s);cv.height=Math.round(im.height*s);cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);URL.revokeObjectURL(u);cv.toBlob(b=>b?res(b):rej(new Error('img')),'image/jpeg',qu)};im.onerror=rej;im.src=u})}
-const zoomTo=b=>{if(V&&V.map&&b.isValid()){setDrawer('min');V.map.fitBounds(b,{paddingTopLeft:[innerWidth>=800?480:24,90],paddingBottomRight:[104,(innerWidth>=800?0:140)+24],maxZoom:19})}};
+const zoomTo=b=>{if(!b.isValid())return;if(V&&V.map)V.map.fitBounds(b,{paddingTopLeft:[24,24],paddingBottomRight:[104,24],maxZoom:19});else{PZ=b;goTab('carte')}};
 
 /* ---------- actions ---------- */
 function act(b){const a=b.dataset.act,c=curC();
@@ -326,14 +370,14 @@ case 'deltask':c.taches.splice(+b.dataset.i,1);save();render();break;
 case 'journal':openSheet(fJournal());break;
 case 'zoom':openSheet(`<div class="sh-in"><div class="sh-h"><h2>Photo</h2><button class="ibtn" data-act="close" aria-label="Fermer">×</button></div><img class="zoom" src="${esc(phSrc(b.dataset.src))}" alt="Photo du chantier"></div>`);break;
 case 'delj':ask('Supprimer cette entrée du journal ?',()=>{const j0=c.journal.find(j=>j.id===b.dataset.j);delPhotos(j0&&j0.photos);c.journal=c.journal.filter(j=>j.id!==b.dataset.j);save();render()});break;
-case 'dup':{const n=JSON.parse(JSON.stringify(c));n.id=uid();n.titre+=' (copie)';n.statut='prevu';n.journal=[];n.taches.forEach(t=>t.done=false);D.chantiers.push(n);save();location.hash='c-'+n.id;toast('Chantier dupliqué');break}
-case 'del':ask(`Supprimer le chantier « ${c.titre} » ? Cette action est définitive.`,()=>{c.journal.forEach(j=>delPhotos(j.photos));D.chantiers=D.chantiers.filter(x=>x!==c);save();location.hash='m-'+c.module});break;
+case 'dup':{const n=JSON.parse(JSON.stringify(c));n.id=uid();n.titre+=' (copie)';n.statut='prevu';n.journal=[];n.photos=[];n.ops=[];n.taches.forEach(t=>t.done=false);D.chantiers.push(n);save();location.hash='c-'+n.id;toast('Chantier dupliqué');break}
+case 'del':ask(`Supprimer le chantier « ${c.titre} » ? Cette action est définitive.`,()=>{c.journal.forEach(j=>delPhotos(j.photos));delPhotos(c.photos.map(x=>x.src));c.ops.forEach(o=>delPhotos(o.photos));D.chantiers=D.chantiers.filter(x=>x!==c);save();location.hash='m-'+c.module});break;
 case 'clear-ex':ask('Effacer tous les chantiers d’exemple ?',()=>{D.chantiers=[];D.exemples=false;save();render()});break;
 case 'dl':{const bl=new Blob([JSON.stringify(D)],{type:'application/json'}),l=document.createElement('a');l.href=URL.createObjectURL(bl);l.download='sauvegarde-chantiers-'+iso()+'.json';document.body.appendChild(l);l.click();l.remove();break}
 case 'imp':openSheet(`<form class="sh-in" data-form="import"><div class="sh-h"><h2>Importer</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div><p class="hint">Choisissez un fichier de sauvegarde. Il remplacera toutes les données actuelles.</p><input type="file" name="file" accept=".json,application/json" required><button class="btn primary wide">Importer</button></form>`);break;
 case 'base':P.base=P.base==='osm'?'photo':'osm';savePref();setBase();updTools();break;
 case 'cad':P.cad=!P.cad;savePref();setCad();updTools();if(P.cad&&V&&V.map&&V.map.getZoom()<13)toast('Zoomez pour voir le cadastre');break;
-case 'mode':setMode(b.dataset.v);break;
+case 'mode':if(V&&V.map)setMode(b.dataset.v);else{PMODE=b.dataset.v;goTab('carte')}break;
 case 'et':ET=b.dataset.v;render();break;
 case 'pw':PW={y:+b.dataset.y,w:+b.dataset.w};render();break;
 case 'pwstep':PW=wStep(PW,+b.dataset.n);render();break;
@@ -353,10 +397,18 @@ case 'logout':ask('Se déconnecter sur ce téléphone ?',()=>{try{localStorage.r
 case 'fb-setup':openSheet(`<form class="sh-in" data-form="fbcfg"><div class="sh-h"><h2>Partage d’équipe</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div><p class="hint">Dans Firebase : Paramètres du projet › Vos applications › Web. Copiez tout le bloc « firebaseConfig » et collez-le ici.</p><textarea name="cfg" rows="9" placeholder='const firebaseConfig = { apiKey: "…", authDomain: "…", projectId: "…", … };' required></textarea><button class="btn primary wide">Activer le partage</button></form>`);break;
 case 'fb-copy':navigator.clipboard.writeText(cfgJs(FB)).then(()=>toast('Contenu de config.js copié')).catch(()=>toast('Copie impossible ici'));break;
 case 'fb-off':ask('Désactiver le partage sur ce téléphone ?',()=>{try{localStorage.removeItem('paysage-carte-v1-firebase')}catch(e){}location.reload()});break;
+case 'zph':{const p=c&&c.photos.find(x=>x.id===b.dataset.id);if(!p)break;openSheet(`<form class="sh-in" data-form="phleg"><div class="sh-h"><h2>Photo du site</h2><button type="button" class="ibtn" data-act="close" aria-label="Fermer">×</button></div><img class="zoom" data-ph="${esc(p.src)}" src="${esc(phSrc(p.src))}" alt="Photo du site"><p class="hint">${esc(fdl(p.date))}${p.par?' · '+esc(p.par):''}</p><input type="hidden" name="id" value="${esc(p.id)}"><label class="f"><span>Légende</span><input name="leg" value="${esc(p.legende)}" placeholder="ex. massif avant taille"></label><div class="two"><button type="button" class="btn danger" data-act="delph" data-id="${esc(p.id)}">Supprimer</button><button class="btn primary">Enregistrer</button></div></form>`);loadPhotos();break}
+case 'delph':ask('Supprimer cette photo ?',()=>{const p=c.photos.find(x=>x.id===b.dataset.id);if(p)delPhotos([p.src]);c.photos=c.photos.filter(x=>x.id!==b.dataset.id);save();render()});break;
+case 'opnew':{const s0=find(b.dataset.c);if(s0)openSheet(fOp(s0,null));break}
+case 'opedit':{const s0=find(b.dataset.c),o=s0&&s0.ops.find(x=>x.id===b.dataset.o);if(o)openSheet(fOp(s0,o));break}
+case 'opdel':ask('Supprimer cette opération ?',()=>{const s0=find(b.dataset.c);if(!s0)return;const o=s0.ops.find(x=>x.id===b.dataset.o);if(o)delPhotos(o.photos);s0.ops=s0.ops.filter(x=>x.id!==b.dataset.o);save();render()});break;
+case 'opst':{const s0=find(b.dataset.c),o=s0&&s0.ops.find(x=>x.id===b.dataset.o);if(o){o.statut=b.dataset.v;if(o.statut==='fait'&&!o.fait)o.fait=iso();save();render()}break}
+case 'of':OF=b.dataset.v;render();break;
 case 'close':closeSheet();break;
 case 'ok':{const f=pending;pending=null;closeSheet();if(f)f();break}}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&!b.closest('.leaflet-popup'))act(b)});
-document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value;$('#lst').innerHTML=listHTML(location.hash.slice(3))}});
+document.addEventListener('change',async e=>{const t=e.target;if(!t.matches||!t.matches('input[data-upl]'))return;const c=CUR.c;const files=[...t.files];if(!c||!files.length)return;toast('Ajout de '+files.length+' photo'+(files.length>1?'s':'')+'…');for(const f of files){try{c.photos.push({id:uid(),src:await storePhoto(f,c),date:iso(),par:cloud&&cloud.user?cloud.user.email:'',legende:''})}catch(err){toast('Une photo n’a pas pu être ajoutée')}}save();render();toast('Photos ajoutées')});
+document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value;$('#lst').innerHTML=listHTML(CUR.mod)}});
 let ty=null;
 document.addEventListener('touchstart',e=>{ty=e.target.closest('.handle,.dh')?e.touches[0].clientY:null},{passive:true});
 document.addEventListener('touchend',e=>{if(ty==null)return;const dy=e.changedTouches[0].clientY-ty,o=['min','mid','max'],i=o.indexOf(dS);ty=null;if(dy<-40)setDrawer(o[Math.min(2,i+1)]);else if(dy>40)setDrawer(o[Math.max(0,i-1)])},{passive:true});
@@ -364,7 +416,11 @@ document.addEventListener('touchend',e=>{if(ty==null)return;const dy=e.changedTo
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target,t=f.dataset.form,v=Object.fromEntries(new FormData(f)),c=curC();
 if(t==='fbcfg'){const o=parseCfg(v.cfg);if(!o){toast('Bloc non reconnu : il faut au moins apiKey et projectId');return}try{localStorage.setItem('paysage-carte-v1-firebase',JSON.stringify(o))}catch(err){}location.reload()}
 else if(t==='login'){const btn=f.querySelector('.primary');btn.disabled=true;btn.textContent='Connexion…';try{await cloud.AU.signInWithEmailAndPassword(cloud.auth,v.email.trim(),v.pw)}catch(err){btn.disabled=false;btn.textContent='Se connecter';toast(/network/.test(String(err&&err.code))?'Pas de connexion internet':'E-mail ou mot de passe incorrect')}}
-else if(t==='prest'&&c){const sem=[...new Set(String(v.sem).split(/[^0-9]+/).map(Number).filter(x=>x>=1&&x<=53))].sort((a,b)=>a-b);if(!sem.length){toast('Indiquez au moins une semaine (1 à 53)');return}c.prestations.push({id:uid(),n:'',des:String(v.des).trim(),u:'',q:'',m:0,hea:false,sem,delai:+String(v.delai||'').replace(',','.')||0,faits:{}});save();render();toast('Prestation ajoutée')}
+else if(t==='prest'&&c){const sem=[...new Set(String(v.sem).split(/[^0-9]+/).map(Number).filter(x=>x>=1&&x<=53))].sort((a,b)=>a-b);if(!sem.length){toast('Indiquez au moins une semaine (1 à 53)');return}c.prestations.push({id:uid(),n:'',des:String(v.des).trim(),u:'',q:'',hea:false,sem,delai:+String(v.delai||'').replace(',','.')||0,faits:{}});save();render();toast('Prestation ajoutée')}
+else if(t==='phleg'&&c){const p=c.photos.find(x=>x.id===v.id);if(p)p.legende=String(v.leg||'').trim();closeSheet();save();render()}
+else if(t==='op'){const s0=find(v.c);if(!s0)return;const btn=f.querySelector('.primary');btn.disabled=true;btn.textContent='Enregistrement…';const np=[];for(const file of f.querySelector('input[type=file]').files){try{np.push(await storePhoto(file,s0))}catch(err){toast('Une photo n’a pas pu être ajoutée')}}
+const base={titre:String(v.titre).trim(),date:v.date,statut:v.statut,desc:String(v.desc||'').trim(),heures:v.heures===''?'':+String(v.heures).replace(',','.')};
+let o=v.o&&s0.ops.find(x=>x.id===v.o);if(o){Object.assign(o,base);o.photos=[...(o.photos||[]),...np]}else s0.ops.push(Object.assign({id:uid(),par:cloud&&cloud.user?cloud.user.email:'',cree:iso(),photos:np},base));closeSheet();save();render();toast('Opération enregistrée')}
 else if(t==='task'){const s=String(v.t||'').trim();if(s&&c){c.taches.push({t:s,done:false});save();render()}}
 else if(t==='chantier'){const det={};FIELDS[v.module].forEach(x=>det[x.k]=String(v['d_'+x.k]||'').trim());
 const base={titre:v.titre.trim(),client:v.client.trim(),adresse:v.adresse.trim(),tel:v.tel.trim(),debut:v.debut,fin:v.fin,heuresPrevues:v.heuresPrevues===''?'':+v.heuresPrevues,equipe:v.equipe.trim(),notes:v.notes.trim(),details:det};
@@ -374,7 +430,7 @@ closeSheet();save();location.hash='c-'+o.id;render();toast('Chantier enregistré
 if(o.adresse&&(!hasG(o)||(adrChanged&&!o.parcelles.length)))geocode(o).then(ok=>{if(ok){save();if(curC()===o){render();fit()}}})}
 else if(t==='ann'&&c){c.annotations.push({id:uid(),type:v.type,pts:JSON.parse(v.pts),texte:String(v.texte||'').trim(),couleur:v.couleur||COLS[0][0]});closeSheet();mode=null;tmp=null;save();render();toast('Annotation enregistrée')}
 else if(t==='journal'&&c){const btn=f.querySelector('.primary');btn.disabled=true;btn.textContent='Ajout des photos…';
-const photos=[];for(const file of f.querySelector('input[type=file]').files){try{const d=await photo(file);if(cloud&&cloud.user){const id=uid()+uid();PH[id]=d;cloud.F.setDoc(cloud.F.doc(cloud.db,'photos',id),{data:d,chantier:c.id,par:cloud.user.email||''}).catch(fail);photos.push('ph:'+id)}else photos.push(d)}catch(err){toast('Une photo n’a pas pu être ajoutée')}}
+const photos=[];for(const file of f.querySelector('input[type=file]').files){try{photos.push(await storePhoto(file,c))}catch(err){toast('Une photo n’a pas pu être ajoutée')}}
 try{localStorage.setItem(LS+'-auteur',v.auteur)}catch(err){}
 c.journal.push({id:uid(),date:v.date,auteur:v.auteur.trim(),heures:+v.heures||0,note:v.note.trim(),photos});
 if(c.statut==='prevu')c.statut='en_cours';closeSheet();save();render();toast('Ajouté au journal')}
@@ -382,6 +438,6 @@ else if(t==='settings'){D.reglages.entreprise=v.entreprise.trim()||'Mon entrepri
 else if(t==='import'){try{const o=JSON.parse(await v.file.text());if(!o||!Array.isArray(o.chantiers)||!o.reglages)throw 0;ask('Remplacer toutes les données par cette sauvegarde ?',()=>{o.chantiers.forEach(norm);D=o;save();teardown();render()})}catch(err){toast('Sauvegarde illisible')}}});
 
 window.addEventListener('hashchange',()=>{closeSheet();render()});
-window.addEventListener('resize',()=>{if(V&&V.map)V.map.invalidateSize()});
+window.addEventListener('resize',placeMap);
 render();if(FB)startCloud();
 }

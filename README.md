@@ -54,8 +54,19 @@ Dans `app.js`, en haut du fichier :
 
 ## Module Entretien
 
-Chaque site d'entretien a une liste de prestations. Pour chacune, l'app garde la désignation, la quantité, l'unité, le montant, la durée d'un passage et les **semaines ISO** où elle est prévue. Le planning revient tous les ans : les passages faits sont enregistrés par année et par semaine (`faits["2026-30"]`).
+Chaque site d'entretien a une liste de prestations. Pour chacune, l'app garde la désignation, la quantité, l'unité, la durée d'un passage et les **semaines ISO** où elle est prévue. L'app n'affiche et n'enregistre aucun prix. Le planning revient tous les ans : les passages faits sont enregistrés par année et par semaine (`faits["2026-30"]`).
 
 - Onglet **Planning** : la liste des passages de la semaine pour tous les sites, à cocher.
-- Fiche d'un site : toutes ses prestations, avec les semaines à cocher et le montant annuel.
+- Fiche d'un site, répartie en onglets :
+  - **Passages** : les prestations, avec les semaines à cocher ;
+  - **Carte** : le plan ou la photo aérienne, avec les parcelles et les annotations ;
+  - **Photos** : la galerie du site, avec légendes ;
+  - **Opérations** : les interventions spéciales, hors planning ;
+  - **Infos** : les tâches, le journal et les informations du site.
 - Le fichier `import-entretien-CCBVL.json` contient les 9 sites et les 50 prestations du DPGF CCBVL. Pour le charger, ouvrez Réglages, puis Importer. **Attention : l'import remplace toutes les données.**
+
+## Où sont rangées les données (en plus de ce qui est décrit plus haut)
+
+- `photos` dans un chantier : `[{id, src, date, par, legende}]`. Le champ `src` vaut `ph:{id}` quand la photo est partagée avec l'équipe.
+- `ops` dans un chantier (opérations spéciales) : `[{id, titre, date, statut: afaire|encours|fait, desc, heures, photos, par}]`.
+- Les onglets sont dans l'adresse de la page, ce qui permet de garder un lien vers un onglet précis : `#c-{id}--carte`, `#m-entretien--ops`…
